@@ -10,6 +10,7 @@
 
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <OLEDFourBit.h>
 
 // Data wire is plugged into port 12 on the Arduino
 #define ONE_WIRE_BUS 12
@@ -17,18 +18,27 @@
 
 
 // enum SENSOR_NAME {fridgeSensor, beerSensor};
-#define fridgeSensor 0
-#define beerSensor   1
+//#define fridgeSensor 0
+//#define beerSensor   1
 
 class TempSensors{
 public:
-	TempSensors();
+	TempSensors(const char *, uint8_t, DallasTemperature *);
 	~TempSensors();
-	float GetTemperature(byte);
+	float   GetTemperature();
+	void    LcdPrintTemp(OLEDFourBit *);
+	void    SerialPrintTemp();
+
+	float   CurrentTemp;
+	char    Name[20];
+	uint8_t SensorIndex;
+	uint8_t SensorAddr[8];
 private:
-	 DallasTemperature *_tempSensor;
-	 OneWire *_onewire;
-	 int _lastTempRequest;
+//	 DallasTemperature *_tempSensor;
+//	 OneWire *_onewire;
+	 int     _lastTempRequest;
+	 uint8_t _resolution;
+	 DallasTemperature *_sensors;
 	 void requestTemp();
 };
 

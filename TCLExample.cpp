@@ -8,7 +8,7 @@
 #include "Clock.h"
 #include "Button.h"
 #include "Relay.h"
-//#include "TempSensors.h"
+#include "TempSensors.h"
 
 //#define DEBUG
 #include <DebugUtils.h>
@@ -23,6 +23,8 @@ OneWire oneWire(ONE_WIRE_BUS);
 
 // Pass our oneWire reference to Dallas Temperature.
 DallasTemperature sensors(&oneWire);
+
+
 
 #define BUTTON1_PIN A7  // 10
 #define BUTTON2_PIN A6  // 13
@@ -44,7 +46,8 @@ Relay relay2(RELAY_2, OFF);
 // init the OLED
 OLEDFourBit lcd(3, 4, 5, 6, 7, 8, 9);
 
-// TempSensors THISsensors;
+TempSensors *fridgeSensor;
+TempSensors *beerSensor;
 
 //celsius to fahrenheit conversion
 float c2f(float val){
@@ -86,6 +89,12 @@ void setup(void)
   //  12bit = 0.0625C 750ms    time to convert
   sensors.setResolution(10);
 
+//  TempSensors fridgeSensor("Fridge", 0, &sensors);
+//  TempSensors beerSensor("Beer", 0, &sensors);
+
+  fridgeSensor = new TempSensors("Fridge", 0, &sensors);
+  beerSensor   = new TempSensors("Beer", 1, &sensors);
+
   uint8_t dsDevAddress[8];
   uint8_t dsDevCount = 0;
 
@@ -104,6 +113,11 @@ void setup(void)
     	Serial.println();
     }
   }
+
+  Serial.print("fridgeSensor.Name: ");
+  Serial.println(fridgeSensor->Name);
+  Serial.print("beerSensor.Name: ");
+  Serial.println(beerSensor->Name);
 
   lcd.begin(20, 4);
   lcd.clear();
@@ -186,14 +200,14 @@ void CLKControl(){
 }
 
 void DSControl(){
-  float fridgeTempC = 0;
-  float beerTempC;
 
+//  sensors.requestTemperatures(); // Send the command to get temperatures
+//
+//  fridgeTempC = sensors.getTempCByIndex(0);
+//  beerTempC   = sensors.getTempCByIndex(0);
 
-  sensors.requestTemperatures(); // Send the command to get temperatures
-
-  fridgeTempC = sensors.getTempCByIndex(0);
-  beerTempC   = sensors.getTempCByIndex(0);
+  fridgeSensor->GetTemperature();
+  beerSensor->GetTemperature();
 
 //  fridgeTempC = THISsensors.GetTemperature(fridgeSensor);
 //  beerTempC   = sensors.GetTemperatures(sensors::SENSORS_NAME::beerSensor);
@@ -209,17 +223,21 @@ void DSControl(){
 //  Serial.print(tempF);
 //  Serial.println(" F");
 
+  fridgeSensor->SerialPrintTemp();
   lcd.setCursor(0,2);
-  lcd.print("DS-F");
-  lcd.print(" ");
-  lcd.print(fridgeTempC);
-  lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
+  fridgeSensor->LcdPrintTemp(&lcd);
+//  lcd.print(fridgeSensor->Name);
+//  lcd.print(" ");
+//  lcd.print(fridgeSensor->CurrentTemp);
+//  lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
 
+  beerSensor->SerialPrintTemp();
   lcd.setCursor(0,3);
-  lcd.print("DS-B");
-  lcd.print(" ");
-  lcd.print(beerTempC);
-  lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
+  beerSensor->LcdPrintTemp(&lcd);
+//  lcd.print(beerSensor->Name);
+//  lcd.print(" ");
+//  lcd.print(beerSensor->CurrentTemp);
+//  lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
 
   Services &= ~DS_SERVICE;		// reset the service flag
 }
@@ -265,11 +283,11 @@ void DHTControl(){
 
 void RLYControl(){
 
-  if(buttonSetting > DHT.temperature){
+  if(buttonSetting > fridgeSensor->CurrentTemp){
 	  relay1.SetState(ON);
 	  relay2.SetState(OFF);
   }
-  else if(buttonSetting < DHT.temperature){
+  else if(buttonSetting < fridgeSensor->CurrentTemp){
 	  relay1.SetState(OFF);
 	  relay2.SetState(ON);
   }
