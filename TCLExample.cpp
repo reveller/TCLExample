@@ -6,34 +6,36 @@
 #include <Time.h>
 #include "TCLExample.h"
 #include "Clock.h"
+#include "Button.h"
+#include "Relay.h"
+#include "TempSensors.h"
 
 //#define DEBUG
 #include <DebugUtils.h>
 
 dht11 DHT;
-int  button1State = 0;
-int  button2State = 0;
+
+#define BUTTON1_PIN A7  // 10
+#define BUTTON2_PIN A6  // 13
+
+Button button1(A6);
+Button button2(A7);
+
 byte buttonSetting = 25;  // Default setting
+
 byte Services      = 0;
 
 byte DS_Interval   = 0;
 byte DHT_Interval  = 0;
-byte BTN_Interval  = 0;
+byte RLY_Interval  = 0;
 
-unsigned long lastButton1Millis = 0;
-byte lastButton1State = 0;
-unsigned long lastButton2Millis = 0;
-byte lastButton2State = 0;
+Relay relay1(RELAY_1, OFF);
+Relay relay2(RELAY_2, OFF);
 
 // init the OLED
 OLEDFourBit lcd(3, 4, 5, 6, 7, 8, 9);
 
-// Setup a oneWire instance to communicate with any OneWire devices
-// (not just Maxim/Dallas temperature ICs)
-OneWire oneWire(ONE_WIRE_BUS);
-
-// Pass our oneWire reference to Dallas Temperature.
-DallasTemperature sensors(&oneWire);
+TempSensors THISsensors;
 
 //celsius to fahrenheit conversion
 float c2f(float val){
@@ -55,28 +57,10 @@ void setup(void)
   Serial.println("Dallas Temperature IC Control Library Demo");
 
   // initialize the button pins as an input:
-  pinMode(button1, INPUT);
-  pinMode(button2, INPUT);
-
-  // Init Relay module control pins - reverse logic, LOW = ON
-  pinMode(RELAY_1, OUTPUT);
-  pinMode(RELAY_2, OUTPUT);
-  digitalWrite(RELAY_1, HIGH);
-  digitalWrite(RELAY_2, HIGH);
 
   // analog pins are input by default
   analogReference(2); //set analog reference to internal 1.1V
   delay(100);
-
-  // Start up the DS18B20 library
-  sensors.begin();
-
-  // Set DS18B20 resolution to:
-  //   9bit = 0.5C,    93.75ms time to convert (tCONV/8)
-  //  10bit = 0.25C,  187.5ms  time to convert (tCONV/4)
-  //  11bit = 0.125C  375ms    time to convert (tCONV/2)
-  //  12bit = 0.0625C 750ms    time to convert
-  sensors.setResolution(10);
 
   Serial.println("DHT11 TEST PROGRAM ");
   Serial.print("LIBRARY VERSION: ");
@@ -96,11 +80,13 @@ void setup(void)
   // Set interval counters
   DS_Interval  = DS_INTERVAL;
   DHT_Interval = DHT_INTERVAL;
-  BTN_Interval = BTN_INTERVAL;
+  RLY_Interval = RLY_INTERVAL;
 
   // fire up the timer interrupt!
   MsTimer2::set(1000, timerISR);
   MsTimer2::start();
+
+  Services = DS_SERVICE | DHT_SERVICE | DHT_SERVICE;
 }
 
 void timerISR(){
@@ -114,9 +100,9 @@ void timerISR(){
     	Services |= DHT_SERVICE;		// service DHT11 once a second
     	DHT_Interval = DHT_INTERVAL;	// reset service interval
     }
-	if (--BTN_Interval <= 0){
-    	Services |= BTN_SERVICE;	// service DHT11 once a second
-    	BTN_Interval = BTN_INTERVAL;	// reset service interval
+	if (--RLY_Interval <= 0){
+    	Services |= RLY_SERVICE;	// service DHT11 once a second
+    	RLY_Interval = RLY_INTERVAL;	// reset service interval
     }
 }
 
@@ -132,68 +118,24 @@ void loop(void)
   if (Services & DHT_SERVICE){
 	  DHTControl();
   }
-  if (Services & BTN_SERVICE){
-	  buttonControl();
+  if (Services & RLY_SERVICE){
+	  RLYControl();
   }
   PROFILER1_END("Services End");
 
-  // check if the pushbutton is pressed.
-  // if it is, the buttonState is HIGH:
-//  DEBUG_PRINT("button1 Start");
-  PROFILER3_START("button1 Start");
-  if((button1State = analogRead(button1)) > 900){
-    if(lastButton1State == 0){        // is this the first time it was pressed?
-	  Serial.println("button1 Pressed");
-	  lastButton1State++;              // show the button is already pressed
-    }
-    else if ((lastButton1State) && ((millis() - lastButton1Millis) > BUTTON_BOUNCE)){
-	  Serial.println("button1 Still Pressed - Incrementing Setting");
-	  Serial.println(millis() - lastButton1Millis);
+  if (button1.IsPressed())
 	  buttonSetting++;
-    }
-	lastButton1Millis = millis();      //   capture the millis for the next go around
-  }
-  else if (lastButton1State){
-	lastButton1State = 0;              // otherwise the button was just released
-	Serial.println("button1 Released");
-  }
-//  DEBUG_PRINT("button1 End");
-  PROFILER3_END("button1 End");
 
-  // check if the pushbutton is pressed.
-  // if it is, the buttonState is HIGH:
-  PROFILER4_START("button2 Start");
-//  DEBUG_PRINT("button2 Start");
-  if((button2State = analogRead(button2)) > 900){
-    if(lastButton2State == 0){        // is this the first time it was pressed?
-	  Serial.println("button2 Pressed");
-	  lastButton2State++;              // show the button is already pressed
-    }
-    else if ((lastButton2State) && ((millis() - lastButton2Millis) > BUTTON_BOUNCE)){
-	  Serial.println("button2 Still Pressed - Decrementing Setting");
-	  Serial.println(millis() - lastButton2Millis);
+  if (button2.IsPressed())
 	  buttonSetting--;
-    }
-	lastButton2Millis = millis();      //   capture the millis for the next go around
-  }
-  else if (lastButton2State){
-	lastButton2State = 0;              // otherwise the button was just released
-	Serial.println("button2 Released");
-  }
-//  DEBUG_PRINT("button2 End");
-  PROFILER4_END("button2 End");
 
-//  DEBUG_PRINT("Setting Start");
   lcd.setCursor(0,1);
   lcd.print("Setting: ");
   lcd.print(buttonSetting);
-//  DEBUG_PRINT("Setting End");
 
-//  DEBUG_PRINT("Serial Start");
   if(Serial.available()){
     processSyncMessage();
   }
-//  DEBUG_PRINT("Serial End");
 }
 
 
@@ -206,37 +148,31 @@ void CLKControl(){
 }
 
 void DSControl(){
-  float tempC;
-  float tempF;
-
-  // call sensors.requestTemperatures() to issue a global temperature
-  // request to all devices on the bus
-//  Serial.print("Requesting temperatures...");
-  PROFILER2_START("DSControl:sensors.requestTemperatures()");
-  sensors.requestTemperatures(); // Send the command to get temperatures
-  PROFILER2_END("DSControl:sensors.requestTemperatures()");
-//  Serial.println("DONE");
-
+  float fridgeTempC = 0;
+//  float beerTempC;
   lcd.setCursor(0,2);
 
-  PROFILER5_START("DSControl:sensors.getTempCByIndex(0)");
-  tempC = sensors.getTempCByIndex(0);
-  PROFILER5_END("DSControl:sensors.getTempCByIndex(0)");
-//  Serial.print("Temperature for the device 1 (index 0) is: ");
+//  fridgeTempC = THISsensors.GetTemperature(fridgeSensor);
+//  beerTempC   = sensors.GetTemperatures(sensors::SENSORS_NAME::beerSensor);
+
+  //  Serial.print("Temperature for the device 1 (index 0) is: ");
 //  Serial.println(tempC);
 
 ////  tempF = c2f(tempC);
 
 //  Serial.print("Temp = ");
-//  Serial.print(tempC);
-//  Serial.print(" C or ");
+//  Serial.print(fridgeTempC);
+//  Serial.println(" C ");
 //  Serial.print(tempF);
 //  Serial.println(" F");
 
-  lcd.print("DS-OK");
-  lcd.print("  ");
-  lcd.print(tempC);
+  lcd.print("DS-F");
+  lcd.print(" ");
+  lcd.print(fridgeTempC);
   lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
+//  lcd.print(" ");
+//  lcd.print(beerTempC);
+//  lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
 ////  lcd.print(" ");
 ////  lcd.print(tempF);
 ////  lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
@@ -283,20 +219,19 @@ void DHTControl(){
   Services &= ~DHT_SERVICE;		// reset the service flag
 }
 
-void buttonControl(){
+void RLYControl(){
 
-//  Serial.println("Servicing Relay LEDs");
   if(buttonSetting > DHT.temperature){
-	  digitalWrite(RELAY_1, LOW);
-	  digitalWrite(RELAY_2, HIGH);
+	  relay1.SetState(ON);
+	  relay2.SetState(OFF);
   }
   else if(buttonSetting < DHT.temperature){
-	  digitalWrite(RELAY_1, HIGH);
-	  digitalWrite(RELAY_2, LOW);
+	  relay1.SetState(OFF);
+	  relay2.SetState(ON);
   }
   else{
-	  digitalWrite(RELAY_1, LOW);
-	  digitalWrite(RELAY_2, LOW);
+	  relay1.SetState(OFF);
+	  relay2.SetState(OFF);
   }
-  Services &= ~BTN_SERVICE;		// reset the service flag
+  Services &= ~RLY_SERVICE;		// reset the service flag
 }
