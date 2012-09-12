@@ -34,10 +34,8 @@ public:
 	uint8_t SensorIndex;
 	uint8_t SensorAddr[8];
 private:
-//	 DallasTemperature *_tempSensor;
-//	 OneWire *_onewire;
-	 int     _lastTempRequest;
-	 uint8_t _resolution;
+	 int                _lastTempRequest;
+	 uint8_t            _resolution;
 	 DallasTemperature *_sensors;
 	 void requestTemp();
 };

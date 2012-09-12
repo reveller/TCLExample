@@ -66,17 +66,12 @@ void setup(void)
 {
   // start serial port
   Serial.begin(9600);
-  Serial.println("Dallas Temperature IC Control Library Demo");
 
-  // initialize the button pins as an input:
-
-  // analog pins are input by default
+  // analog pins are input by default - for the buttons - move to class?
   analogReference(2); //set analog reference to internal 1.1V
   delay(100);
 
-  Serial.println("DHT11 TEST PROGRAM ");
-  Serial.print("LIBRARY VERSION: ");
-  Serial.println(DHT11LIB_VERSION);
+  Serial.println("BEER TEST PROGRAM ");
   Serial.println();
 
   // Start up the DS18B20 library
@@ -113,11 +108,6 @@ void setup(void)
     	Serial.println();
     }
   }
-
-  Serial.print("fridgeSensor.Name: ");
-  Serial.println(fridgeSensor->Name);
-  Serial.print("beerSensor.Name: ");
-  Serial.println(beerSensor->Name);
 
   lcd.begin(20, 4);
   lcd.clear();
@@ -200,44 +190,16 @@ void CLKControl(){
 }
 
 void DSControl(){
-
-//  sensors.requestTemperatures(); // Send the command to get temperatures
-//
-//  fridgeTempC = sensors.getTempCByIndex(0);
-//  beerTempC   = sensors.getTempCByIndex(0);
-
   fridgeSensor->GetTemperature();
   beerSensor->GetTemperature();
-
-//  fridgeTempC = THISsensors.GetTemperature(fridgeSensor);
-//  beerTempC   = sensors.GetTemperatures(sensors::SENSORS_NAME::beerSensor);
-
-  //  Serial.print("Temperature for the device 1 (index 0) is: ");
-//  Serial.println(tempC);
-
-////  tempF = c2f(tempC);
-
-//  Serial.print("Temp = ");
-//  Serial.print(fridgeTempC);
-//  Serial.println(" C ");
-//  Serial.print(tempF);
-//  Serial.println(" F");
 
   fridgeSensor->SerialPrintTemp();
   lcd.setCursor(0,2);
   fridgeSensor->LcdPrintTemp(&lcd);
-//  lcd.print(fridgeSensor->Name);
-//  lcd.print(" ");
-//  lcd.print(fridgeSensor->CurrentTemp);
-//  lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
 
   beerSensor->SerialPrintTemp();
   lcd.setCursor(0,3);
   beerSensor->LcdPrintTemp(&lcd);
-//  lcd.print(beerSensor->Name);
-//  lcd.print(" ");
-//  lcd.print(beerSensor->CurrentTemp);
-//  lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
 
   Services &= ~DS_SERVICE;		// reset the service flag
 }
