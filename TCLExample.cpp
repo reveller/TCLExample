@@ -8,12 +8,21 @@
 #include "Clock.h"
 #include "Button.h"
 #include "Relay.h"
-#include "TempSensors.h"
+//#include "TempSensors.h"
 
 //#define DEBUG
 #include <DebugUtils.h>
 
 dht11 DHT;
+
+#define ONE_WIRE_BUS 12
+
+// Setup a oneWire instance to communicate with any OneWire devices
+// (not just Maxim/Dallas temperature ICs)
+OneWire oneWire(ONE_WIRE_BUS);
+
+// Pass our oneWire reference to Dallas Temperature.
+DallasTemperature sensors(&oneWire);
 
 #define BUTTON1_PIN A7  // 10
 #define BUTTON2_PIN A6  // 13
@@ -35,7 +44,7 @@ Relay relay2(RELAY_2, OFF);
 // init the OLED
 OLEDFourBit lcd(3, 4, 5, 6, 7, 8, 9);
 
-TempSensors THISsensors;
+// TempSensors THISsensors;
 
 //celsius to fahrenheit conversion
 float c2f(float val){
@@ -66,7 +75,35 @@ void setup(void)
   Serial.print("LIBRARY VERSION: ");
   Serial.println(DHT11LIB_VERSION);
   Serial.println();
-  Serial.println("Type,\tstatus,\tHumidity(%),\tTemp(C),\tTemp(F)");
+
+  // Start up the DS18B20 library
+  sensors.begin();
+
+  // Set DS18B20 resolution to:
+  //   9bit = 0.5C,    93.75ms time to convert (tCONV/8)
+  //  10bit = 0.25C,  187.5ms  time to convert (tCONV/4)
+  //  11bit = 0.125C  375ms    time to convert (tCONV/2)
+  //  12bit = 0.0625C 750ms    time to convert
+  sensors.setResolution(10);
+
+  uint8_t dsDevAddress[8];
+  uint8_t dsDevCount = 0;
+
+  dsDevCount = sensors.getDeviceCount();
+  Serial.print("DS18B20 Devices Found on OneWire Bus: ");
+  Serial.println(dsDevCount);
+  for (int idx = 0; idx < dsDevCount; idx++){
+    if (sensors.getAddress(dsDevAddress, idx)){
+    	Serial.print("DS Device Address[");
+    	Serial.print(idx);
+    	Serial.print("]:");
+    	for (int i = 0; i < 8; i++) {
+    	    Serial.print(dsDevAddress[i], HEX);
+    	    Serial.print(" ");
+    	}
+    	Serial.println();
+    }
+  }
 
   lcd.begin(20, 4);
   lcd.clear();
@@ -85,6 +122,7 @@ void setup(void)
   // fire up the timer interrupt!
   MsTimer2::set(1000, timerISR);
   MsTimer2::start();
+
 
   Services = DS_SERVICE | DHT_SERVICE | DHT_SERVICE;
 }
@@ -115,9 +153,9 @@ void loop(void)
   if (Services & DS_SERVICE){
 	  DSControl();
   }
-  if (Services & DHT_SERVICE){
-	  DHTControl();
-  }
+//  if (Services & DHT_SERVICE){
+//	  DHTControl();
+//  }
   if (Services & RLY_SERVICE){
 	  RLYControl();
   }
@@ -149,8 +187,13 @@ void CLKControl(){
 
 void DSControl(){
   float fridgeTempC = 0;
-//  float beerTempC;
-  lcd.setCursor(0,2);
+  float beerTempC;
+
+
+  sensors.requestTemperatures(); // Send the command to get temperatures
+
+  fridgeTempC = sensors.getTempCByIndex(0);
+  beerTempC   = sensors.getTempCByIndex(0);
 
 //  fridgeTempC = THISsensors.GetTemperature(fridgeSensor);
 //  beerTempC   = sensors.GetTemperatures(sensors::SENSORS_NAME::beerSensor);
@@ -166,16 +209,17 @@ void DSControl(){
 //  Serial.print(tempF);
 //  Serial.println(" F");
 
+  lcd.setCursor(0,2);
   lcd.print("DS-F");
   lcd.print(" ");
   lcd.print(fridgeTempC);
   lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
-//  lcd.print(" ");
-//  lcd.print(beerTempC);
-//  lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
-////  lcd.print(" ");
-////  lcd.print(tempF);
-////  lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
+
+  lcd.setCursor(0,3);
+  lcd.print("DS-B");
+  lcd.print(" ");
+  lcd.print(beerTempC);
+  lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
 
   Services &= ~DS_SERVICE;		// reset the service flag
 }
