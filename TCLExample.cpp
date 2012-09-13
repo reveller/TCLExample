@@ -15,12 +15,13 @@
 
 dht11 DHT;
 
+#define BUTTONMENU_PIN A5
+#define BUTTONDOWN_PIN A6  // 13
+#define BUTTONUP_PIN   A7  // 10
 
-#define BUTTON1_PIN A7  // 10
-#define BUTTON2_PIN A6  // 13
-
-Button button1(A6);
-Button button2(A7);
+Button buttonMenu(BUTTONMENU_PIN);
+Button buttonUp(BUTTONUP_PIN);
+Button buttonDown(BUTTONDOWN_PIN);
 
 byte buttonSetting = 25;  // Default setting
 
@@ -128,11 +129,21 @@ void loop(void)
   }
   PROFILER1_END("Services End");
 
-  if (button1.IsPressed())
+  if (buttonUp.IsPressed())
 	  buttonSetting++;
 
-  if (button2.IsPressed())
+  if (buttonDown.IsPressed())
 	  buttonSetting--;
+
+  static bool menuFlag = 0;
+  if (buttonMenu.IsPressed()){
+	  lcd.setCursor(15,1);
+	  menuFlag = !menuFlag;
+	  if(menuFlag)
+	    lcd.print("MENU");
+	  else
+	    lcd.print("    ");
+  }
 
   lcd.setCursor(0,1);
   lcd.print("Setting: ");

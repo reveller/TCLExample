@@ -36,9 +36,9 @@
 //                  A2
 //                  A3
 //                  A4
-//                  A5        button3
-//    Button2       A6        button2
-//    Button1       A7        button1
+//    ButtonMenu    A5        button3
+//    ButtonDN      A6        button2
+//    ButtonUP      A7        button1
 
 
 #define RELAY_1    2
@@ -52,8 +52,8 @@ extern dht11 DHT;
 
 
 // variables for maintaining button status
-extern int  button1State;
-extern int  button2State;
+//extern int  button1State;
+//extern int  button2State;
 extern byte buttonSetting;  // Default setting
 
 // Service Intervals
