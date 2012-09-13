@@ -37,6 +37,7 @@ public:
 private:
 	int                _lastTempRequest;
 	uint8_t            _resolution;
+	OneWire           *_onewire;
 	DallasTemperature *_sensors;
 	uint8_t            _sensorAddr[8];
 
