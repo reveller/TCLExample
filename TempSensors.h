@@ -23,8 +23,10 @@
 
 class TempSensors{
 public:
-	TempSensors(const char *, uint8_t, DallasTemperature *);
+//	TempSensors(const char *, uint8_t, DallasTemperature *);
+	TempSensors(const char *, uint8_t);
 	~TempSensors();
+	int     GetAddress(char *);
 	float   GetTemperature();
 	void    LcdPrintTemp(OLEDFourBit *);
 	void    SerialPrintTemp();
@@ -32,12 +34,13 @@ public:
 	float   CurrentTemp;
 	char    Name[20];
 	uint8_t SensorIndex;
-	uint8_t SensorAddr[8];
 private:
-	 int                _lastTempRequest;
-	 uint8_t            _resolution;
-	 DallasTemperature *_sensors;
-	 void requestTemp();
+	int                _lastTempRequest;
+	uint8_t            _resolution;
+	DallasTemperature *_sensors;
+	uint8_t            _sensorAddr[8];
+
+	void requestTemp();
 };
 
 #endif /* TEMPSENSORS_H_ */

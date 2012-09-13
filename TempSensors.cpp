@@ -7,7 +7,19 @@
 
 #include "TempSensors.h"
 
-TempSensors::TempSensors(const char *initName, uint8_t initIndex, DallasTemperature *sensors) {
+#define ONE_WIRE_BUS 12
+
+// Setup a oneWire instance to communicate with any OneWire devices
+// (not just Maxim/Dallas temperature ICs)
+OneWire oneWire(ONE_WIRE_BUS);
+
+// Pass our oneWire reference to Dallas Temperature.
+DallasTemperature sensors(&oneWire);
+
+
+
+// TempSensors::TempSensors(const char *initName, uint8_t initIndex, DallasTemperature *sensors) {
+TempSensors::TempSensors(const char *initName, uint8_t initIndex) {
 	// Setup a oneWire instance to communicate with any OneWire devices
 	// (not just Maxim/Dallas temperature ICs)
 //	_onewire = new OneWire(ONE_WIRE_BUS);
@@ -25,24 +37,55 @@ TempSensors::TempSensors(const char *initName, uint8_t initIndex, DallasTemperat
 	//  12bit = 0.0625C 750ms    time to convert
 //	_tempSensor->setResolution(10);
 
+	  // Start up the DS18B20 library
+	  sensors.begin();
+
+	  // Set DS18B20 resolution to:
+	  //   9bit = 0.5C,    93.75ms time to convert (tCONV/8)
+	  //  10bit = 0.25C,  187.5ms  time to convert (tCONV/4)
+	  //  11bit = 0.125C  375ms    time to convert (tCONV/2)
+	  //  12bit = 0.0625C 750ms    time to convert
+	  sensors.setResolution(10);
+
 	_lastTempRequest = 0;
 	CurrentTemp = 0;
 	strncpy(Name, initName, 20);
 	SensorIndex = initIndex;
 	_resolution = 10;
-	_sensors = sensors;
-	_sensors->getAddress(SensorAddr, SensorIndex);
-	_sensors->setResolution(_resolution);
+//	_sensors = sensors;
+	sensors.getAddress(_sensorAddr, SensorIndex);
+	sensors.setResolution(_resolution);
 }
 
 TempSensors::~TempSensors() {
 	// TODO Auto-generated destructor stub
 }
 
+int TempSensors::GetAddress(char *addrBuffer)
+{
+//	for (int i = 0, addrIdx = 0; i < 8; i++) {
+//		if(_sensorAddr[i] < 0xf){
+//			if (addrIdx < addrBufLen)
+//				addrBuffer[addrIdx++] = '0';
+//		if (addrIdx < addrBufLen)
+//			itoa(_sensorAddr[i], addrBuffer[addrIdx++], HEX);
+//		if (addrIdx < addrBufLen)
+//			addrBuffer[addrIdx++] = ':';
+		return sprintf(addrBuffer, "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
+				_sensorAddr[0],
+				_sensorAddr[1],
+				_sensorAddr[2],
+				_sensorAddr[3],
+				_sensorAddr[4],
+				_sensorAddr[5],
+				_sensorAddr[6],
+				_sensorAddr[7]);
+}
+
 float TempSensors::GetTemperature()
 {
 	requestTemp();
-	CurrentTemp = _sensors->getTempCByIndex(SensorIndex);
+	CurrentTemp = sensors.getTempCByIndex(SensorIndex);
 	return CurrentTemp;
 }
 
@@ -65,8 +108,8 @@ void TempSensors::SerialPrintTemp()
 void TempSensors::requestTemp()
 {
 	int newMs = millis();
-	if((newMs -_lastTempRequest)<MAX_TEMP_REQUEST)
+	if((newMs - this->_lastTempRequest)<MAX_TEMP_REQUEST)
 		return;
-	_sensors->requestTemperatures();
+	sensors.requestTemperatures();
 	_lastTempRequest = newMs;
 }

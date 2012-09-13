@@ -15,16 +15,6 @@
 
 dht11 DHT;
 
-#define ONE_WIRE_BUS 12
-
-// Setup a oneWire instance to communicate with any OneWire devices
-// (not just Maxim/Dallas temperature ICs)
-OneWire oneWire(ONE_WIRE_BUS);
-
-// Pass our oneWire reference to Dallas Temperature.
-DallasTemperature sensors(&oneWire);
-
-
 
 #define BUTTON1_PIN A7  // 10
 #define BUTTON2_PIN A6  // 13
@@ -46,20 +36,9 @@ Relay relay2(RELAY_2, OFF);
 // init the OLED
 OLEDFourBit lcd(3, 4, 5, 6, 7, 8, 9);
 
+// Our temp sensors, we'll allocate them in setup()
 TempSensors *fridgeSensor;
 TempSensors *beerSensor;
-
-//celsius to fahrenheit conversion
-float c2f(float val){
-  float aux = (val * 9 / 5);
-  return (aux + 32);
-}
-
-//Celsius to Fahrenheit conversion
-double Fahrenheit(double celsius)
-{
-	return 1.8 * celsius + 32;
-}
 
 
 void setup(void)
@@ -74,39 +53,23 @@ void setup(void)
   Serial.println("BEER TEST PROGRAM ");
   Serial.println();
 
-  // Start up the DS18B20 library
-  sensors.begin();
+  fridgeSensor = new TempSensors("Fridge", 0);
+  beerSensor   = new TempSensors("Beer", 1);
 
-  // Set DS18B20 resolution to:
-  //   9bit = 0.5C,    93.75ms time to convert (tCONV/8)
-  //  10bit = 0.25C,  187.5ms  time to convert (tCONV/4)
-  //  11bit = 0.125C  375ms    time to convert (tCONV/2)
-  //  12bit = 0.0625C 750ms    time to convert
-  sensors.setResolution(10);
 
-//  TempSensors fridgeSensor("Fridge", 0, &sensors);
-//  TempSensors beerSensor("Beer", 0, &sensors);
 
-  fridgeSensor = new TempSensors("Fridge", 0, &sensors);
-  beerSensor   = new TempSensors("Beer", 1, &sensors);
-
-  uint8_t dsDevAddress[8];
-  uint8_t dsDevCount = 0;
-
-  dsDevCount = sensors.getDeviceCount();
-  Serial.print("DS18B20 Devices Found on OneWire Bus: ");
-  Serial.println(dsDevCount);
-  for (int idx = 0; idx < dsDevCount; idx++){
-    if (sensors.getAddress(dsDevAddress, idx)){
-    	Serial.print("DS Device Address[");
-    	Serial.print(idx);
-    	Serial.print("]:");
-    	for (int i = 0; i < 8; i++) {
-    	    Serial.print(dsDevAddress[i], HEX);
-    	    Serial.print(" ");
-    	}
-    	Serial.println();
-    }
+  // 01:34:67:90:23:56:89:01
+  char addrBuffer[24];
+  int retval = 0;
+  if((retval = fridgeSensor->GetAddress(addrBuffer)) == 23){
+    Serial.print("fridgeSensor Address:[");
+    Serial.print(addrBuffer);
+    Serial.println("]");
+  }
+  if((retval = beerSensor->GetAddress(addrBuffer)) == 23){
+    Serial.print("beerSensor Address:[");
+    Serial.print(addrBuffer);
+    Serial.println("]");
   }
 
   lcd.begin(20, 4);
@@ -223,9 +186,9 @@ void DHTControl(){
 		lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
 //		Serial.print(",\t");
 //		Serial.println(Fahrenheit(DHT.temperature),2);
-  	    lcd.print(" ");
-	    lcd.print(Fahrenheit(DHT.temperature));
-		lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
+//  	    lcd.print(" ");
+//	    lcd.print(Fahrenheit(DHT.temperature));
+//		lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
 		break;
     case DHTLIB_ERROR_CHECKSUM:
 //		Serial.println("Checksum error,\t");
