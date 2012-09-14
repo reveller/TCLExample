@@ -84,26 +84,6 @@ void setup(void)
   lcd.clear();
   lcd.home();
 
-
-  uint8_t dsDevAddress[8];
-  uint8_t dsDevCount = 0;
-
-  dsDevCount = sensors.getDeviceCount();
-  Serial.print("DS18B20 Devices Found on OneWire Bus: ");
-  Serial.println(dsDevCount);
-  for (int idx = 0; idx < dsDevCount; idx++){
-    if (sensors.getAddress(dsDevAddress, idx)){
-    	Serial.print("DS Device Address[");
-    	Serial.print(idx);
-    	Serial.print("]:");
-    	for (int i = 0; i < 8; i++) {
-    	    Serial.print(dsDevAddress[i], HEX);
-    	    Serial.print(" ");
-    	}
-    	Serial.println();
-    }
-  }
-
   lcd.setCursor(0,0);
   lcd.print("DHT-DS TEST PROGRAM ");
 
@@ -219,14 +199,7 @@ void DSControl(){
   lcd.setCursor(0,3);
   beerTempController->LcdPrintTemp(&lcd);
 
-  tempC = sensors.getTempCByIndex(1);
-  lcd.setCursor(0,3);
-  lcd.print("DS-2");
-  lcd.print("   ");
-  lcd.print(tempC);
-  lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
-
-  Services &= ~DS_SERVICE;		// reset the service flag
+   Services &= ~DS_SERVICE;		// reset the service flag
 }
 
 
