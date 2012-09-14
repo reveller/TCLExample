@@ -37,22 +37,11 @@ TempSensors::TempSensors(const char *initName, uint8_t initIndex) {
 	//  12bit = 0.0625C 750ms    time to convert
 	_sensors->setResolution(10);
 
-//	  // Start up the DS18B20 library
-//	  sensors.begin();
-//
-//	  // Set DS18B20 resolution to:
-//	  //   9bit = 0.5C,    93.75ms time to convert (tCONV/8)
-//	  //  10bit = 0.25C,  187.5ms  time to convert (tCONV/4)
-//	  //  11bit = 0.125C  375ms    time to convert (tCONV/2)
-//	  //  12bit = 0.0625C 750ms    time to convert
-//	  sensors.setResolution(10);
-
 	_lastTempRequest = 0;
 	CurrentTemp = 0;
 	strncpy(Name, initName, 20);
 	SensorIndex = initIndex;
 	_resolution = 10;
-//	_sensors = sensors;
 	_sensors->getAddress(_sensorAddr, SensorIndex);
 	_sensors->setResolution(_resolution);
 }
