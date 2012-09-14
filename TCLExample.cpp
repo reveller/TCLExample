@@ -6,83 +6,79 @@
 #include <Time.h>
 #include "TCLExample.h"
 #include "Clock.h"
+#include "Button.h"
+#include "Relay.h"
+#include "TempSensors.h"
+#include "BeerTempController.h"
 
 //#define DEBUG
 #include <DebugUtils.h>
 
 dht11 DHT;
-int  button1State = 0;
-int  button2State = 0;
+
+#define BUTTONMENU_PIN A5
+#define BUTTONDOWN_PIN A6  // 13
+#define BUTTONUP_PIN   A7  // 10
+
+Button buttonMenu(BUTTONMENU_PIN);
+Button buttonUp(BUTTONUP_PIN);
+Button buttonDown(BUTTONDOWN_PIN);
+
 byte buttonSetting = 25;  // Default setting
+
 byte Services      = 0;
 
 byte DS_Interval   = 0;
 byte DHT_Interval  = 0;
-byte BTN_Interval  = 0;
+byte RLY_Interval  = 0;
+byte updateTemperatures_Interval = 0;
+byte updateSlowFilteredTemperatures_Interval = 0;
+byte updateSlope_Interval = 0;
 
-unsigned long lastButton1Millis = 0;
-byte lastButton1State = 0;
-unsigned long lastButton2Millis = 0;
-byte lastButton2State = 0;
+Relay relay1(RELAY_1, OFF);
+Relay relay2(RELAY_2, OFF);
 
 // init the OLED
 OLEDFourBit lcd(3, 4, 5, 6, 7, 8, 9);
 
-// Setup a oneWire instance to communicate with any OneWire devices
-// (not just Maxim/Dallas temperature ICs)
-OneWire oneWire(ONE_WIRE_BUS);
-
-// Pass our oneWire reference to Dallas Temperature.
-DallasTemperature sensors(&oneWire);
-
-//celsius to fahrenheit conversion
-float c2f(float val){
-  float aux = (val * 9 / 5);
-  return (aux + 32);
-}
-
-//Celsius to Fahrenheit conversion
-double Fahrenheit(double celsius)
-{
-	return 1.8 * celsius + 32;
-}
-
+// Our temp sensors, we'll allocate them in setup()
+//TempSensors *fridgeSensor;
+//TempSensors *beerSensor;
+BeerTempController *beerTempController;
+BeerTempController *fridgeTempController;
 
 void setup(void)
 {
   // start serial port
   Serial.begin(9600);
-  Serial.println("Dallas Temperature IC Control Library Demo");
 
-  // initialize the button pins as an input:
-  pinMode(button1, INPUT);
-  pinMode(button2, INPUT);
-
-  // Init Relay module control pins - reverse logic, LOW = ON
-  pinMode(RELAY_1, OUTPUT);
-  pinMode(RELAY_2, OUTPUT);
-  digitalWrite(RELAY_1, HIGH);
-  digitalWrite(RELAY_2, HIGH);
-
-  // analog pins are input by default
+  // analog pins are input by default - for the buttons - move to class?
   analogReference(2); //set analog reference to internal 1.1V
   delay(100);
 
-  // Start up the DS18B20 library
-  sensors.begin();
-
-  // Set DS18B20 resolution to:
-  //   9bit = 0.5C,    93.75ms time to convert (tCONV/8)
-  //  10bit = 0.25C,  187.5ms  time to convert (tCONV/4)
-  //  11bit = 0.125C  375ms    time to convert (tCONV/2)
-  //  12bit = 0.0625C 750ms    time to convert
-  sensors.setResolution(10);
-
-  Serial.println("DHT11 TEST PROGRAM ");
-  Serial.print("LIBRARY VERSION: ");
-  Serial.println(DHT11LIB_VERSION);
+  Serial.println("BEER TEST PROGRAM ");
   Serial.println();
-  Serial.println("Type,\tstatus,\tHumidity(%),\tTemp(C),\tTemp(F)");
+
+//  fridgeSensor = new TempSensors("Fridge", 0);
+//  beerSensor   = new TempSensors();
+
+  fridgeTempController = new BeerTempController ("Fridge", 0);
+  beerTempController = new BeerTempController ("Beer", 1);
+
+
+  // 01:34:67:90:23:56:89:01
+  char addrBuffer[24];
+  int retval = 0;
+  if((retval = fridgeTempController->GetAddress(addrBuffer)) == 23){
+    Serial.print("fridgeTempController Address:[");
+    Serial.print(addrBuffer);
+    Serial.println("]");
+  }
+  if((retval = beerTempController->GetAddress(addrBuffer)) == 23){
+    Serial.print("beerTempController Address:[");
+    Serial.print(addrBuffer);
+    Serial.println("]");
+  }
 
   lcd.begin(20, 4);
   lcd.clear();
@@ -116,11 +112,19 @@ void setup(void)
   // Set interval counters
   DS_Interval  = DS_INTERVAL;
   DHT_Interval = DHT_INTERVAL;
-  BTN_Interval = BTN_INTERVAL;
+  RLY_Interval = RLY_INTERVAL;
+
+  updateTemperatures_Interval = updateTemperatures_INTERVAL;
+
+  updateSlowFilteredTemperatures_Interval = updateSlowFilteredTemperatures_INTERVAL;
+  updateSlope_Interval = updateSlope_INTERVAL;
 
   // fire up the timer interrupt!
   MsTimer2::set(1000, timerISR);
   MsTimer2::start();
+
+
+  Services = DS_SERVICE | DHT_SERVICE | DHT_SERVICE;
 }
 
 void timerISR(){
@@ -134,10 +138,22 @@ void timerISR(){
     	Services |= DHT_SERVICE;		// service DHT11 once a second
     	DHT_Interval = DHT_INTERVAL;	// reset service interval
     }
-	if (--BTN_Interval <= 0){
-    	Services |= BTN_SERVICE;	// service DHT11 once a second
-    	BTN_Interval = BTN_INTERVAL;	// reset service interval
+	if (--RLY_Interval <= 0){
+    	Services |= RLY_SERVICE;	// service DHT11 once a second
+    	RLY_Interval = RLY_INTERVAL;	// reset service interval
     }
+	if (--updateTemperatures_Interval <= 0){
+    	Services |= updateTemperatures_SERVICE;
+    	updateTemperatures_Interval = updateTemperatures_INTERVAL;	// reset service interval
+	}
+	if (--updateSlowFilteredTemperatures_Interval <= 0){
+    	Services |= updateSlowFilteredTemperatures_SERVICE;
+    	updateSlowFilteredTemperatures_Interval = updateSlowFilteredTemperatures_INTERVAL;	// reset service interval
+	}
+	if (--updateSlope_Interval <= 0){
+    	Services |= updateSlope_SERVICE;
+    	updateSlope_Interval = updateSlope_INTERVAL;	// reset service interval
+	}
 }
 
 void loop(void)
@@ -152,68 +168,34 @@ void loop(void)
 //  if (Services & DHT_SERVICE){
 //	  DHTControl();
 //  }
-  if (Services & BTN_SERVICE){
-	  buttonControl();
+  if (Services & RLY_SERVICE){
+	  RLYControl();
   }
   PROFILER1_END("Services End");
 
-  // check if the pushbutton is pressed.
-  // if it is, the buttonState is HIGH:
-//  DEBUG_PRINT("button1 Start");
-  PROFILER3_START("button1 Start");
-  if((button1State = analogRead(button1)) > 900){
-    if(lastButton1State == 0){        // is this the first time it was pressed?
-	  Serial.println("button1 Pressed");
-	  lastButton1State++;              // show the button is already pressed
-    }
-    else if ((lastButton1State) && ((millis() - lastButton1Millis) > BUTTON_BOUNCE)){
-	  Serial.println("button1 Still Pressed - Incrementing Setting");
-	  Serial.println(millis() - lastButton1Millis);
+  if (buttonUp.IsPressed())
 	  buttonSetting++;
-    }
-	lastButton1Millis = millis();      //   capture the millis for the next go around
-  }
-  else if (lastButton1State){
-	lastButton1State = 0;              // otherwise the button was just released
-	Serial.println("button1 Released");
-  }
-//  DEBUG_PRINT("button1 End");
-  PROFILER3_END("button1 End");
 
-  // check if the pushbutton is pressed.
-  // if it is, the buttonState is HIGH:
-  PROFILER4_START("button2 Start");
-//  DEBUG_PRINT("button2 Start");
-  if((button2State = analogRead(button2)) > 900){
-    if(lastButton2State == 0){        // is this the first time it was pressed?
-	  Serial.println("button2 Pressed");
-	  lastButton2State++;              // show the button is already pressed
-    }
-    else if ((lastButton2State) && ((millis() - lastButton2Millis) > BUTTON_BOUNCE)){
-	  Serial.println("button2 Still Pressed - Decrementing Setting");
-	  Serial.println(millis() - lastButton2Millis);
+  if (buttonDown.IsPressed())
 	  buttonSetting--;
-    }
-	lastButton2Millis = millis();      //   capture the millis for the next go around
-  }
-  else if (lastButton2State){
-	lastButton2State = 0;              // otherwise the button was just released
-	Serial.println("button2 Released");
-  }
-//  DEBUG_PRINT("button2 End");
-  PROFILER4_END("button2 End");
 
-//  DEBUG_PRINT("Setting Start");
+  static bool menuFlag = 0;
+  if (buttonMenu.IsPressed()){
+	  lcd.setCursor(15,1);
+	  menuFlag = !menuFlag;
+	  if(menuFlag)
+	    lcd.print("MENU");
+	  else
+	    lcd.print("    ");
+  }
+
   lcd.setCursor(0,1);
   lcd.print("Setting: ");
   lcd.print(buttonSetting);
-//  DEBUG_PRINT("Setting End");
 
-//  DEBUG_PRINT("Serial Start");
   if(Serial.available()){
     processSyncMessage();
   }
-//  DEBUG_PRINT("Serial End");
 }
 
 
@@ -226,38 +208,16 @@ void CLKControl(){
 }
 
 void DSControl(){
-  float tempC;
-  float tempF;
+  fridgeTempController->GetTemperature();
+  beerTempController->GetTemperature();
 
-  // call sensors.requestTemperatures() to issue a global temperature
-  // request to all devices on the bus
-//  Serial.print("Requesting temperatures...");
-  PROFILER2_START("DSControl:sensors.requestTemperatures()");
-  sensors.requestTemperatures(); // Send the command to get temperatures
-  PROFILER2_END("DSControl:sensors.requestTemperatures()");
-//  Serial.println("DONE");
-
-
-  tempC = sensors.getTempCByIndex(0);
-//  Serial.print("Temperature for the device 1 (index 0) is: ");
-//  Serial.println(tempC);
-
-////  tempF = c2f(tempC);
-
-//  Serial.print("Temp = ");
-//  Serial.print(tempC);
-//  Serial.print(" C or ");
-//  Serial.print(tempF);
-//  Serial.println(" F");
-
+  fridgeTempController->SerialPrintTemp();
   lcd.setCursor(0,2);
-  lcd.print("DS-1");
-  lcd.print("   ");
-  lcd.print(tempC);
-  lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
-////  lcd.print(" ");
-////  lcd.print(tempF);
-////  lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
+  fridgeTempController->LcdPrintTemp(&lcd);
+
+  beerTempController->SerialPrintTemp();
+  lcd.setCursor(0,3);
+  beerTempController->LcdPrintTemp(&lcd);
 
   tempC = sensors.getTempCByIndex(1);
   lcd.setCursor(0,3);
@@ -288,9 +248,9 @@ void DHTControl(){
 		lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
 //		Serial.print(",\t");
 //		Serial.println(Fahrenheit(DHT.temperature),2);
-  	    lcd.print(" ");
-	    lcd.print(Fahrenheit(DHT.temperature));
-		lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
+//  	    lcd.print(" ");
+//	    lcd.print(Fahrenheit(DHT.temperature));
+//		lcd.print((char)223);		// Print degree symbol 0xDF b1101 1111
 		break;
     case DHTLIB_ERROR_CHECKSUM:
 //		Serial.println("Checksum error,\t");
@@ -308,20 +268,95 @@ void DHTControl(){
   Services &= ~DHT_SERVICE;		// reset the service flag
 }
 
-void buttonControl(){
+void RLYControl(){
 
-//  Serial.println("Servicing Relay LEDs");
-  if(buttonSetting > DHT.temperature){
-	  digitalWrite(RELAY_1, LOW);
-	  digitalWrite(RELAY_2, HIGH);
+  if(buttonSetting > fridgeTempController->CurrentTemp){
+	  relay1.SetState(ON);
+	  relay2.SetState(OFF);
   }
-  else if(buttonSetting < DHT.temperature){
-	  digitalWrite(RELAY_1, HIGH);
-	  digitalWrite(RELAY_2, LOW);
+  else if(buttonSetting < fridgeTempController->CurrentTemp){
+	  relay1.SetState(OFF);
+	  relay2.SetState(ON);
   }
   else{
-	  digitalWrite(RELAY_1, LOW);
-	  digitalWrite(RELAY_2, LOW);
+	  relay1.SetState(OFF);
+	  relay2.SetState(OFF);
   }
-  Services &= ~BTN_SERVICE;		// reset the service flag
+  Services &= ~RLY_SERVICE;		// reset the service flag
+}
+
+void updateTemperatures(void) { //called every 200 milliseconds
+	fridgeTempController->TempFast[0] = fridgeTempController->TempFast[1];
+	fridgeTempController->TempFast[1] = fridgeTempController->TempFast[2];
+	fridgeTempController->TempFast[2] = fridgeTempController->TempFast[3];
+	fridgeTempController->TempFast[3] = fridgeTempController->TempSensors::GetTemperature();
+
+	// Butterworth filter with cutoff frequency 0.033*sample frequency (FS=5Hz)
+	fridgeTempController->TempFiltFast[0] = fridgeTempController->TempFiltFast[1];
+	fridgeTempController->TempFiltFast[1] = fridgeTempController->TempFiltFast[2];
+	fridgeTempController->TempFiltFast[2] = fridgeTempController->TempFiltFast[3];
+	fridgeTempController->TempFiltFast[3] = (fridgeTempController->TempFast[0] + fridgeTempController->TempFast[3]
+			+ 3 * (fridgeTempController->TempFast[1] + fridgeTempController->TempFast[2])) / 1.092799972e+03
+			+ (0.6600489526 * fridgeTempController->TempFiltFast[0])
+			+ (-2.2533982563 * fridgeTempController->TempFiltFast[1])
+			+ (2.5860286592 * fridgeTempController->TempFiltFast[2]);
+
+	fridgeTempController->TemperatureActual = fridgeTempController->TempFiltFast[3];
+
+	beerTempController->TempFast[0] = beerTempController->TempFast[1];
+	beerTempController->TempFast[1] = beerTempController->TempFast[2];
+	beerTempController->TempFast[2] = beerTempController->TempFast[3];
+	beerTempController->TempFast[3] = beerTempController->TempSensors::GetTemperature();
+
+	// Butterworth filter with cutoff frequency 0.01*sample frequency (FS=5Hz)
+	beerTempController->TempFiltFast[0] = beerTempController->TempFiltFast[1];
+	beerTempController->TempFiltFast[1] = beerTempController->TempFiltFast[2];
+	beerTempController->TempFiltFast[2] = beerTempController->TempFiltFast[3];
+	beerTempController->TempFiltFast[3] = (beerTempController->TempFast[0] + beerTempController->TempFast[3]
+			+ 3 * (beerTempController->TempFast[1] + beerTempController->TempFast[2])) / 3.430944333e+04
+			+ (0.8818931306 * beerTempController->TempFiltFast[0])
+			+ (-2.7564831952 * beerTempController->TempFiltFast[1])
+			+ (2.8743568927 * beerTempController->TempFiltFast[2]);
+
+	beerTempController->TemperatureActual = beerTempController->TempFiltFast[3];
+}
+
+void updateSlowFilteredTemperatures(void) { //called every 10 seconds
+	// Input for filter
+	fridgeTempController->TempSlow[0] = fridgeTempController->TempSlow[1];
+	fridgeTempController->TempSlow[1] = fridgeTempController->TempSlow[2];
+	fridgeTempController->TempSlow[2] = fridgeTempController->TempSlow[3];
+	fridgeTempController->TempSlow[3] = fridgeTempController->TempFiltFast[3];
+
+	// Butterworth filter with cutoff frequency 0.01*sample frequency (FS=0.1Hz)
+	fridgeTempController->TempFiltSlow[0] = fridgeTempController->TempFiltSlow[1];
+	fridgeTempController->TempFiltSlow[1] = fridgeTempController->TempFiltSlow[2];
+	fridgeTempController->TempFiltSlow[2] = fridgeTempController->TempFiltSlow[3];
+	fridgeTempController->TempFiltSlow[3] = (fridgeTempController->TempSlow[0] + fridgeTempController->TempSlow[3]
+			+ 3 * (fridgeTempController->TempSlow[1] + fridgeTempController->TempSlow[2])) / 3.430944333e+04
+			+ (0.8818931306 * fridgeTempController->TempFiltSlow[0])
+			+ (-2.7564831952 * fridgeTempController->TempFiltSlow[1])
+			+ (2.8743568927 * fridgeTempController->TempFiltSlow[2]);
+
+	beerTempController->TempSlow[0] = beerTempController->TempSlow[1];
+	beerTempController->TempSlow[1] = beerTempController->TempSlow[2];
+	beerTempController->TempSlow[2] = beerTempController->TempSlow[3];
+	beerTempController->TempSlow[3] = beerTempController->TempFiltFast[3];
+
+	// Butterworth filter with cutoff frequency 0.01*sample frequency (FS=0.1Hz)
+	beerTempController->TempFiltSlow[0] = beerTempController->TempFiltSlow[1];
+	beerTempController->TempFiltSlow[1] = beerTempController->TempFiltSlow[2];
+	beerTempController->TempFiltSlow[2] = beerTempController->TempFiltSlow[3];
+	beerTempController->TempFiltSlow[3] = (beerTempController->TempSlow[0] + beerTempController->TempSlow[3]
+			+ 3 * (beerTempController->TempSlow[1] + beerTempController->TempSlow[2])) / 3.430944333e+04
+			+ (0.8818931306 * beerTempController->TempFiltSlow[0])
+			+ (-2.7564831952 * beerTempController->TempFiltSlow[1])
+			+ (2.8743568927 * beerTempController->TempFiltSlow[2]);
+}
+
+void updateSlope(void) { //called every minute
+	beerTempController->TempHistory[beerTempController->TempHistoryIndex] = beerTempController->TempFiltSlow[3];
+	beerTempController->Slope = beerTempController->TempHistory[beerTempController->TempHistoryIndex]
+			- beerTempController->TempHistory[(beerTempController->TempHistoryIndex + 1) % 30];
+	beerTempController->TempHistoryIndex = (beerTempController->TempHistoryIndex + 1) % 30;
 }

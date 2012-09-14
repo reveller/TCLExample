@@ -36,62 +36,58 @@
 //                  A2
 //                  A3
 //                  A4
-//                  A5        button3
-//    Button2       A6        button2
-//    Button1       A7        button1
+//    ButtonMenu    A5        button3
+//    ButtonDN      A6        button2
+//    ButtonUP      A7        button1
 
 
 #define RELAY_1    2
 #define RELAY_2    10
 
-// Data wire is plugged into port 12 on the Arduino
-#define ONE_WIRE_BUS 12
 
 // DHT11 Temp/Humdity Sensor is plugged into port 11
 #define DHT11_PIN 11
 // init the DHT11 sensor
 extern dht11 DHT;
 
-#define button1 A7  // 10
-#define button2 A6  // 13
-
-#define BUTTON_BOUNCE 250 	// millis to wait to inc setting on continuous button press
 
 // variables for maintaining button status
-extern int  button1State;
-extern int  button2State;
+//extern int  button1State;
+//extern int  button2State;
 extern byte buttonSetting;  // Default setting
 
 // Service Intervals
-#define DS_INTERVAL  1
-#define DHT_INTERVAL 1
-#define BTN_INTERVAL 10
+#define DS_INTERVAL  10
+#define DHT_INTERVAL 10
+#define RLY_INTERVAL 10
+// Original called for this every 200ms
+#define updateTemperatures_INTERVAL 1
+#define updateSlowFilteredTemperatures_INTERVAL 10
+#define updateSlope_INTERVAL 60
 
 // Service Flags
-#define DS_SERVICE  B00000001
-#define DHT_SERVICE B00000010
-#define BTN_SERVICE B00000100
-#define CLK_SERVICE B00001000
+#define DS_SERVICE                             B00000001
+#define DHT_SERVICE                            B00000010
+#define RLY_SERVICE                            B00000100
+#define CLK_SERVICE                            B00001000
+#define updateTemperatures_SERVICE             B00010000
+#define updateSlowFilteredTemperatures_SERVICE B00100000
+#define updateSlope_SERVICE                    B0100000
 
 extern byte Services;
 
 extern byte DS_Interval;
 extern byte DHT_Interval;
-extern byte BTN_Interval;
+extern byte RLY_Interval;
+extern byte updateTemperatures_Interval;
+extern byte updateSlowFilteredTemperatures_Interval;
+extern byte updateSlope_Interval;
 
 // init the OLED
 extern OLEDFourBit lcd;
 
-// Setup a oneWire instance to communicate with any OneWire devices
-// (not just Maxim/Dallas temperature ICs)
-extern OneWire oneWire;
-
-// Pass our oneWire reference to Dallas Temperature.
-extern DallasTemperature sensors;
-
-
-
 //end of add your includes here
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -100,16 +96,11 @@ void setup();
 void timerISR();
 void DSControl();
 void DHTControl();
-void buttonControl();
+void RLYControl();
 void CLKControl();
 #ifdef __cplusplus
 } // extern "C"
 #endif
-
-//add your function definitions for the project TLCExample here
-
-
-
 
 //Do not add code below this line
 #endif /* TLCExample_H_ */
