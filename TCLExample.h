@@ -60,18 +60,28 @@ extern byte buttonSetting;  // Default setting
 #define DS_INTERVAL  10
 #define DHT_INTERVAL 10
 #define RLY_INTERVAL 10
+// Original called for this every 200ms
+#define updateTemperatures_INTERVAL 1
+#define updateSlowFilteredTemperatures_INTERVAL 10
+#define updateSlope_INTERVAL 60
 
 // Service Flags
-#define DS_SERVICE  B00000001
-#define DHT_SERVICE B00000010
-#define RLY_SERVICE B00000100
-#define CLK_SERVICE B00001000
+#define DS_SERVICE                             B00000001
+#define DHT_SERVICE                            B00000010
+#define RLY_SERVICE                            B00000100
+#define CLK_SERVICE                            B00001000
+#define updateTemperatures_SERVICE             B00010000
+#define updateSlowFilteredTemperatures_SERVICE B00100000
+#define updateSlope_SERVICE                    B0100000
 
 extern byte Services;
 
 extern byte DS_Interval;
 extern byte DHT_Interval;
 extern byte RLY_Interval;
+extern byte updateTemperatures_Interval;
+extern byte updateSlowFilteredTemperatures_Interval;
+extern byte updateSlope_Interval;
 
 // init the OLED
 extern OLEDFourBit lcd;

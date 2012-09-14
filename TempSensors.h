@@ -17,13 +17,9 @@
 #define MAX_TEMP_REQUEST 900
 
 
-// enum SENSOR_NAME {fridgeSensor, beerSensor};
-//#define fridgeSensor 0
-//#define beerSensor   1
 
 class TempSensors{
 public:
-//	TempSensors(const char *, uint8_t, DallasTemperature *);
 	TempSensors(const char *, uint8_t);
 	~TempSensors();
 	int     GetAddress(char *);
