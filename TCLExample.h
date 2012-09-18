@@ -52,18 +52,18 @@ extern dht11 DHT;
 
 
 // variables for maintaining button status
-//extern int  button1State;
-//extern int  button2State;
 extern byte buttonSetting;  // Default setting
 
+#define CLOCK_RESOLUTION_MS 200
+
 // Service Intervals
-#define DS_INTERVAL  10
-#define DHT_INTERVAL 10
-#define RLY_INTERVAL 10
+#define DS_INTERVAL  (10*CLOCK_RESOLUTION_MS)
+#define DHT_INTERVAL (10*CLOCK_RESOLUTION_MS)
+#define RLY_INTERVAL (10*CLOCK_RESOLUTION_MS)
 // Original called for this every 200ms
-#define updateTemperatures_INTERVAL 1
-#define updateSlowFilteredTemperatures_INTERVAL 10
-#define updateSlope_INTERVAL 60
+#define updateTemperatures_INTERVAL (1*CLOCK_RESOLUTION_MS)
+#define updateSlowFilteredTemperatures_INTERVAL (10*CLOCK_RESOLUTION_MS)
+#define updateSlope_INTERVAL (60*CLOCK_RESOLUTION_MS)
 
 // Service Flags
 #define DS_SERVICE                             B00000001
@@ -98,6 +98,9 @@ void DSControl();
 void DHTControl();
 void RLYControl();
 void CLKControl();
+void updateTemperatures();
+void updateSlowFilteredTemperatures();
+void updateSlope();
 #ifdef __cplusplus
 } // extern "C"
 #endif
