@@ -7,8 +7,7 @@
 
 #include "TempController.h"
 
-TempController::TempController(const char *initName, uint8_t initIndex)
-  : TempSensors(initName, initIndex)
+TempController::TempController()
 {
 	TemperatureActual = GetTemperature();
 	for (int i = 0; i < 4; i++) {
@@ -26,6 +25,12 @@ TempController::TempController(const char *initName, uint8_t initIndex)
 //		updateSlowFilteredTemperatures();
 	}
 
+	Slope = 0;
+	TempHistoryIndex = 0;
+
+	for (int i = 0; i < 30; i++) {
+		TempHistory[i] = TempController::TempFiltSlow[3];
+	}
 }
 
 TempController::~TempController() {

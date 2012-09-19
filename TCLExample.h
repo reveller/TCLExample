@@ -94,13 +94,13 @@ extern "C" {
 void loop();
 void setup();
 void timerISR();
-void DSControl();
-void DHTControl();
+//void DSControl();
+//void DHTControl();
 void RLYControl();
 void CLKControl();
-void updateTemperatures();
-void updateSlowFilteredTemperatures();
-void updateSlope();
+//void updateTemperatures();
+//void updateSlowFilteredTemperatures();
+//void updateSlope();
 #ifdef __cplusplus
 } // extern "C"
 #endif

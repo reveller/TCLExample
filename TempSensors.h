@@ -19,6 +19,7 @@
 
 
 class TempSensors{
+	static int                _lastTempRequest;
 public:
 	TempSensors(const char *, uint8_t);
 	~TempSensors();
@@ -31,7 +32,6 @@ public:
 	char    Name[20];
 	uint8_t SensorIndex;
 private:
-	int                _lastTempRequest;
 	uint8_t            _resolution;
 	OneWire           *_onewire;
 	DallasTemperature *_sensors;

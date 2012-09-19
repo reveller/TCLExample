@@ -15,6 +15,9 @@ public:
 	TempController(const char *, uint8_t);
 	virtual ~TempController();
 
+	//
+	TempController *fridgeTempController;
+
 	// Fast filtered temperatures
 	float TemperatureActual;
 	float TemperatureSetting;
@@ -25,6 +28,13 @@ public:
 	// Slow filtered Temperatures used for peak detection
 	float TempSlow[4];
 	float TempFiltSlow[4];
+
+	float Slope;
+
+	//history for slope calculation
+	float TempHistory[30];
+	unsigned char TempHistoryIndex;
+
 
 
 

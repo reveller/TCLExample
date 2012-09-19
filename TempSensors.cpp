@@ -97,7 +97,7 @@ void TempSensors::SerialPrintTemp()
 void TempSensors::requestTemp()
 {
 	int newMs = millis();
-	if((newMs - this->_lastTempRequest)<MAX_TEMP_REQUEST)
+	if((newMs - TempSensors::_lastTempRequest)<MAX_TEMP_REQUEST)
 		return;
 	_sensors->requestTemperatures();
 	_lastTempRequest = newMs;
