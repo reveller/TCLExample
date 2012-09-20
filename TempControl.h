@@ -34,6 +34,7 @@ private:
 	int _primaryController;
 	int _timer;
 	byte _Flags;
+	byte _state;
 };
 
 #endif /* TEMPCONTROL_H_ */
