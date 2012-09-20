@@ -24,6 +24,7 @@ public:
 	~TempSensors();
 	int     GetAddress(char *);
 	float   GetTemperature();
+	int     GetName(char *);
 	void    LcdPrintTemp(OLEDFourBit *);
 	void    SerialPrintTemp();
 	int         _lastTempRequest;

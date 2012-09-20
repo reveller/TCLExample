@@ -6,6 +6,7 @@
  */
 
 #include "TempControl.h"
+#include "OLEDFourBit.h"
 
 TempControl::TempControl() {
 	// TODO Auto-generated constructor stub
@@ -59,3 +60,22 @@ float TempControl::GetFridgeTemp()
 	return _fridgeTemp->GetTemp();
 }
 
+void TempControl::SerialPrintFridgeTemp()
+{
+	return _fridgeTemp->SerialPrintTemp();
+}
+
+void TempControl::LcdPrintFridgeTemp(OLEDFourBit *lcd)
+{
+	return _fridgeTemp->LcdPrintTemp(lcd);
+}
+
+void TempControl::SerialPrintBeerTemp()
+{
+	return _beerTemp->SerialPrintTemp();
+}
+
+void TempControl::LcdPrintBeerTemp(OLEDFourBit *lcd)
+{
+	return _beerTemp->LcdPrintTemp(lcd);
+}

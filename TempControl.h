@@ -21,6 +21,11 @@ public:
 	void SetPrimaryTemp(int);
 	float GetBeerTemp();
 	float GetFridgeTemp();
+	void SerialPrintFridgeTemp();
+	void LcdPrintFridgeTemp(OLEDFourBit *);
+	void SerialPrintBeerTemp();
+	void LcdPrintBeerTemp(OLEDFourBit *);
+
 private:
 	BeerTempController *_beerTemp;
 	FridgeTempController *_fridgeTemp;

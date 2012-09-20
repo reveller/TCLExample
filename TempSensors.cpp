@@ -6,6 +6,7 @@
  */
 
 #include "TempSensors.h"
+#include <string.h>
 
 #define ONE_WIRE_BUS 12
 
@@ -77,6 +78,11 @@ float TempSensors::GetTemperature()
 	requestTemp();
 	CurrentTemp = _sensors->getTempCByIndex(SensorIndex);
 	return CurrentTemp;
+}
+
+int TempSensors::GetName(char *dest)
+{
+	return (sprintf(dest, "%s", Name));
 }
 
 void TempSensors::LcdPrintTemp(OLEDFourBit *lcd)

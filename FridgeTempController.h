@@ -23,6 +23,9 @@ public:
 	void UpdateTimer();
 	void Update();
 	float GetThirdOrderTemp();
+	void SerialPrintTemp();
+	void LcdPrintTemp(OLEDFourBit *);
+
 private:
 	TempSensors *_Temp;
 	int _timer;

@@ -133,3 +133,24 @@ void FridgeTempController::updateTemperatures()  //called every 200 milliseconds
 
 	TemperatureActual = TempFiltFast[3];
 }
+
+void FridgeTempController::SerialPrintTemp()
+{
+	char myName[20];
+	_Temp->GetName(myName);
+	Serial.print(myName);
+	Serial.print(" = ");
+	Serial.print(_Temp->GetTemperature());
+	Serial.println((char)248);	// ASCII 248 = degree symbol
+}
+
+void FridgeTempController::LcdPrintTemp(OLEDFourBit *lcd)
+{
+	char myName[20];
+	_Temp->GetName(myName);
+	lcd->print(myName);
+	lcd->print(" ");
+	lcd->print(_Temp->GetTemperature());
+	lcd->print((char)223);		// Print degree symbol 0xDF b1101 1111
+}
+

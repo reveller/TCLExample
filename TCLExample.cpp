@@ -62,14 +62,8 @@ void setup(void)
 	Serial.println("BEER TEST PROGRAM ");
 	Serial.println();
 
-	//  fridgeSensor = new TempSensors("Fridge", 0);
-	//  beerSensor   = new TempSensors();
-
 	tempControl = new TempControl();
 
-//	fridgeTempController = new TempController ("Fridge", 0);
-//	beerTempController = new TempController ("Beer", 1);
-//
 //
 //	// 01:34:67:90:23:56:89:01
 //	char addrBuffer[24];
@@ -211,6 +205,15 @@ void CLKControl(){
 		lcd.setCursor(12,1);
 		OLEDClockDisplay();
 	}
+
+	tempControl->SerialPrintFridgeTemp();
+	lcd.setCursor(0,2);
+	tempControl->LcdPrintFridgeTemp(&lcd);
+
+	tempControl->SerialPrintBeerTemp();
+	lcd.setCursor(0,3);
+	tempControl->LcdPrintBeerTemp(&lcd);
+
 	Services &= ~CLK_SERVICE;		// reset the service flag
 }
 
