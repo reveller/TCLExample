@@ -16,7 +16,7 @@
 
 class BeerTempController {
 public:
-	BeerTempController();
+	BeerTempController(const char*, uint8_t);
 	virtual ~BeerTempController();
 	float GetTemp();
 	void UpdateTimer();
@@ -26,9 +26,27 @@ private:
 	TempSensors *_Temp;
 	int _timer;
 	byte _flags;
+
+	// Fast filtered temperatures
+	float TemperatureActual;
+	float TemperatureSetting;
+
+	float TempFast[4];
+	float TempFiltFast[4];
+
+	// Slow filtered Temperatures used for peak detection
+	float TempSlow[4];
+	float TempFiltSlow[4];
+
+	float Slope;
+
+	//history for slope calculation
+	float TempHistory[30];
+	unsigned char TempHistoryIndex;
+
 	void updateSlope();
 	void updateSlowFilteredTemperatures();
-	void updateTemperatures()
+	void updateTemperatures();
 };
 
 

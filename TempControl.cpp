@@ -10,8 +10,8 @@
 TempControl::TempControl() {
 	// TODO Auto-generated constructor stub
 	_Compressor = new Relay(0,true);
-	_Heater = new Relay(1,true);
-	_beerTemp = new BeerTempController();
+	_Heater     = new Relay(1,true);
+	_beerTemp   = new BeerTempController("Beer", 1);
 	_fridgeTemp = new FridgeTempController();
 	_timer=0;
 }
@@ -48,7 +48,7 @@ void TempControl::UpdateTimers()
 }
 void TempControl::SetPrimaryTemp(int TempControllerId)
 {
-	_primaryController = SetPrimaryTemp;
+	// _primaryController = SetPrimaryTemp;
 }
 float TempControl::GetBeerTemp()
 {

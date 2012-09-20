@@ -19,7 +19,6 @@
 
 
 class TempSensors{
-	static int                _lastTempRequest;
 public:
 	TempSensors(const char *, uint8_t);
 	~TempSensors();
@@ -27,6 +26,7 @@ public:
 	float   GetTemperature();
 	void    LcdPrintTemp(OLEDFourBit *);
 	void    SerialPrintTemp();
+	int         _lastTempRequest;
 
 	float   CurrentTemp;
 	char    Name[20];

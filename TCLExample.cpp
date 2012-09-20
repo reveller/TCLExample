@@ -9,6 +9,7 @@
 #include "Button.h"
 #include "Relay.h"
 #include "TempSensors.h"
+#include "TempControl.h"
 //#include "BeerTempController.h"
 
 //#define DEBUG
@@ -64,7 +65,7 @@ void setup(void)
 	//  fridgeSensor = new TempSensors("Fridge", 0);
 	//  beerSensor   = new TempSensors();
 
-	tempControl = new tempControl();
+	tempControl = new TempControl();
 
 //	fridgeTempController = new TempController ("Fridge", 0);
 //	beerTempController = new TempController ("Beer", 1);
@@ -284,83 +285,5 @@ void RLYControl(){
 //	Services &= ~RLY_SERVICE;		// reset the service flag
 }
 
-void updateTemperatures(void) { //called every 200 milliseconds
-	fridgeTempController->TempFast[0] = fridgeTempController->TempFast[1];
-	fridgeTempController->TempFast[1] = fridgeTempController->TempFast[2];
-	fridgeTempController->TempFast[2] = fridgeTempController->TempFast[3];
-	fridgeTempController->TempFast[3] = fridgeTempController->TempSensors::GetTemperature();
 
-	// Butterworth filter with cutoff frequency 0.033*sample frequency (FS=5Hz)
-	fridgeTempController->TempFiltFast[0] = fridgeTempController->TempFiltFast[1];
-	fridgeTempController->TempFiltFast[1] = fridgeTempController->TempFiltFast[2];
-	fridgeTempController->TempFiltFast[2] = fridgeTempController->TempFiltFast[3];
-	fridgeTempController->TempFiltFast[3] = (fridgeTempController->TempFast[0] + fridgeTempController->TempFast[3]
-	    + 3 * (fridgeTempController->TempFast[1] + fridgeTempController->TempFast[2])) / 1.092799972e+03
-	    + (0.6600489526 * fridgeTempController->TempFiltFast[0])
-	    + (-2.2533982563 * fridgeTempController->TempFiltFast[1])
-	    + (2.5860286592 * fridgeTempController->TempFiltFast[2]);
 
-	fridgeTempController->TemperatureActual = fridgeTempController->TempFiltFast[3];
-
-	beerTempController->TempFast[0] = beerTempController->TempFast[1];
-	beerTempController->TempFast[1] = beerTempController->TempFast[2];
-	beerTempController->TempFast[2] = beerTempController->TempFast[3];
-	beerTempController->TempFast[3] = beerTempController->TempSensors::GetTemperature();
-
-	// Butterworth filter with cutoff frequency 0.01*sample frequency (FS=5Hz)
-	beerTempController->TempFiltFast[0] = beerTempController->TempFiltFast[1];
-	beerTempController->TempFiltFast[1] = beerTempController->TempFiltFast[2];
-	beerTempController->TempFiltFast[2] = beerTempController->TempFiltFast[3];
-	beerTempController->TempFiltFast[3] = (beerTempController->TempFast[0] + beerTempController->TempFast[3]
-	    + 3 * (beerTempController->TempFast[1] + beerTempController->TempFast[2])) / 3.430944333e+04
-	    + (0.8818931306 * beerTempController->TempFiltFast[0])
-	    + (-2.7564831952 * beerTempController->TempFiltFast[1])
-	    + (2.8743568927 * beerTempController->TempFiltFast[2]);
-
-	beerTempController->TemperatureActual = beerTempController->TempFiltFast[3];
-
-	Services &= ~updateTemperatures_SERVICE;		// reset the service flag
-}
-
-void updateSlowFilteredTemperatures(void) { //called every 10 seconds
-	// Input for filter
-	fridgeTempController->TempSlow[0] = fridgeTempController->TempSlow[1];
-	fridgeTempController->TempSlow[1] = fridgeTempController->TempSlow[2];
-	fridgeTempController->TempSlow[2] = fridgeTempController->TempSlow[3];
-	fridgeTempController->TempSlow[3] = fridgeTempController->TempFiltFast[3];
-
-	// Butterworth filter with cutoff frequency 0.01*sample frequency (FS=0.1Hz)
-	fridgeTempController->TempFiltSlow[0] = fridgeTempController->TempFiltSlow[1];
-	fridgeTempController->TempFiltSlow[1] = fridgeTempController->TempFiltSlow[2];
-	fridgeTempController->TempFiltSlow[2] = fridgeTempController->TempFiltSlow[3];
-	fridgeTempController->TempFiltSlow[3] = (fridgeTempController->TempSlow[0] + fridgeTempController->TempSlow[3]
-	    + 3 * (fridgeTempController->TempSlow[1] + fridgeTempController->TempSlow[2])) / 3.430944333e+04
-        + (0.8818931306 * fridgeTempController->TempFiltSlow[0])
-        + (-2.7564831952 * fridgeTempController->TempFiltSlow[1])
-	    + (2.8743568927 * fridgeTempController->TempFiltSlow[2]);
-
-	beerTempController->TempSlow[0] = beerTempController->TempSlow[1];
-	beerTempController->TempSlow[1] = beerTempController->TempSlow[2];
-	beerTempController->TempSlow[2] = beerTempController->TempSlow[3];
-	beerTempController->TempSlow[3] = beerTempController->TempFiltFast[3];
-
-	// Butterworth filter with cutoff frequency 0.01*sample frequency (FS=0.1Hz)
-	beerTempController->TempFiltSlow[0] = beerTempController->TempFiltSlow[1];
-	beerTempController->TempFiltSlow[1] = beerTempController->TempFiltSlow[2];
-	beerTempController->TempFiltSlow[2] = beerTempController->TempFiltSlow[3];
-	beerTempController->TempFiltSlow[3] = (beerTempController->TempSlow[0] + beerTempController->TempSlow[3]
-        + 3 * (beerTempController->TempSlow[1] + beerTempController->TempSlow[2])) / 3.430944333e+04
-        + (0.8818931306 * beerTempController->TempFiltSlow[0])
-        + (-2.7564831952 * beerTempController->TempFiltSlow[1])
-        + (2.8743568927 * beerTempController->TempFiltSlow[2]);
-
-	Services &= ~updateSlowFilteredTemperatures_SERVICE;		// reset the service flag
-}
-
-void updateSlope(void) { //called every minute
-	beerTempController->TempHistory[beerTempController->TempHistoryIndex] = beerTempController->TempFiltSlow[3];
-	beerTempController->Slope = beerTempController->TempHistory[beerTempController->TempHistoryIndex]
-	    - beerTempController->TempHistory[(beerTempController->TempHistoryIndex + 1) % 30];
-	beerTempController->TempHistoryIndex = (beerTempController->TempHistoryIndex + 1) % 30;
-	Services &= ~updateSlope_SERVICE;		// reset the service flag
-}

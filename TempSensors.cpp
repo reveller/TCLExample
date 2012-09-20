@@ -37,7 +37,8 @@ TempSensors::TempSensors(const char *initName, uint8_t initIndex) {
 	//  12bit = 0.0625C 750ms    time to convert
 	_sensors->setResolution(10);
 
-	_lastTempRequest = 0;
+
+
 	CurrentTemp = 0;
 	strncpy(Name, initName, 20);
 	SensorIndex = initIndex;
