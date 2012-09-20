@@ -19,12 +19,21 @@ public:
 	BeerTempController(const char*, uint8_t);
 	virtual ~BeerTempController();
 	float GetTemp();
+	float GetTempActual();
+	float GetTempSetting();
 	void UpdateTimer();
 	void Update();
 	float GetThirdOrderTemp();
 
 	void SerialPrintTemp();
 	void LcdPrintTemp(OLEDFourBit *);
+
+	float TempFast[4];
+	float TempFiltFast[4];
+
+	// Slow filtered Temperatures used for peak detection
+	float TempSlow[4];
+	float TempFiltSlow[4];
 
 private:
 	TempSensors *_Temp;
@@ -35,13 +44,6 @@ private:
 	float TemperatureActual;
 	float TemperatureSetting;
 
-	float TempFast[4];
-	float TempFiltFast[4];
-
-	// Slow filtered Temperatures used for peak detection
-	float TempSlow[4];
-	float TempFiltSlow[4];
-
 	float Slope;
 
 	//history for slope calculation
@@ -51,6 +53,16 @@ private:
 	void updateSlope();
 	void updateSlowFilteredTemperatures();
 	void updateTemperatures();
+
+	float SettingForNegPeakEstimate;
+
+
+	enum messages_t{
+	  BEER_SETTING_FROM_FRIDGE,
+	  BEER_SETTING_FROM_SERIAL,
+	  BEER_SETTING_FROM_PROFILE
+	};
+
 };
 
 

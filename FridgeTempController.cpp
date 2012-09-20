@@ -46,6 +46,36 @@ float FridgeTempController::GetTemp()
 	return _Temp->GetTemperature();
 }
 
+float FridgeTempController::GetTempActual()
+{
+	return TemperatureActual;
+}
+
+float FridgeTempController::GetTempSetting()
+{
+	return TemperatureSetting;
+}
+
+void FridgeTempController::SetNegPeakEstimate()
+{
+  SettingForNegPeakEstimate = TemperatureSetting;
+}
+
+void FridgeTempController::SetPosPeakEstimate()
+{
+  SettingForPosPeakEstimate = TemperatureSetting;
+}
+
+float FridgeTempController::GetSettingForPosPeakEstimate()
+{
+	return SettingForPosPeakEstimate;
+}
+
+float FridgeTempController::GetSettingForNegPeakEstimate()
+{
+	return SettingForNegPeakEstimate;
+}
+
 void FridgeTempController::Update()
 {
 	//Update Temp Array 200ms

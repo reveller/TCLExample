@@ -20,16 +20,18 @@ public:
 	FridgeTempController();
 	virtual ~FridgeTempController();
 	float GetTemp();
+	float GetTempActual();
+	float GetTempSetting();
 	void UpdateTimer();
 	void Update();
 	float GetThirdOrderTemp();
 	void SerialPrintTemp();
 	void LcdPrintTemp(OLEDFourBit *);
+	void SetNegPeakEstimate();
+	void SetPosPeakEstimate();
+	float GetSettingForPosPeakEstimate();
+	float GetSettingForNegPeakEstimate();
 
-private:
-	TempSensors *_Temp;
-	int _timer;
-	byte _flags;
 
 	// Fast filtered temperatures
 	float TemperatureActual;
@@ -41,6 +43,11 @@ private:
 	// Slow filtered Temperatures used for peak detection
 	float TempSlow[4];
 	float TempFiltSlow[4];
+private:
+	TempSensors *_Temp;
+	int _timer;
+	byte _flags;
+
 
 	float Slope;
 
@@ -51,6 +58,21 @@ private:
 	void updateSlope();
 	void updateSlowFilteredTemperatures();
 	void updateTemperatures();
+
+	float SettingForNegPeakEstimate;
+	float SettingForPosPeakEstimate;
+
+	enum messages_t{
+	  FRIDGE_SETTING_FROM_FRIDGE,
+	  FRIDGE_SETTING_FROM_SERIAL,
+	  FRIDGE_DOOR_OPEN,
+	  FRIDGE_DOOR_CLOSED,
+	  POSPEAK,
+	  NEGPEAK,
+	  POSDRIFT,
+	  NEGDRIFT,
+	  ARDUINO_START
+	};
 };
 
 #endif /* FRIDGETEMPCONTROLLER_H_ */

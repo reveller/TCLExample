@@ -50,6 +50,15 @@ float BeerTempController::GetTemp()
 	return _Temp->GetTemperature();
 }
 
+float BeerTempController::GetTempActual()
+{
+	return TemperatureActual;
+}
+
+float BeerTempController::GetTempSetting()
+{
+	return TemperatureSetting;
+}
 void BeerTempController::Update()
 {
 	//Update Temp Array 200ms

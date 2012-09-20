@@ -10,7 +10,8 @@
 #include "Relay.h"
 #include "TempSensors.h"
 #include "TempControl.h"
-//#include "BeerTempController.h"
+#include "Settings.h"
+
 
 //#define DEBUG
 #include <DebugUtils.h>
@@ -42,13 +43,9 @@ Relay relay2(RELAY_2, OFF);
 // init the OLED
 OLEDFourBit lcd(3, 4, 5, 6, 7, 8, 9);
 
-// Our temp sensors, we'll allocate them in setup()
-//TempSensors *fridgeSensor;
-//TempSensors *beerSensor;
-//TempController *beerTempController;
-//TempController *fridgeTempController;
-
 TempControl *tempControl;
+
+Settings settings();
 
 void setup(void)
 {

@@ -11,6 +11,31 @@
 #include "BeerTempController.h"
 #include "FridgeTempController.h"
 #include "Relay.h"
+#include "Settings.h"
+
+// control defines
+#define KpHeat 10
+#define KpCool 5
+#define Ki 0.02
+#define KdCool -5
+#define KdHeat -10
+
+// Stay Idle when temperature is in this range
+#define IDLE_RANGE_HIGH (+5)
+#define IDLE_RANGE_LOW (-5)
+
+// when peak falls between these limits, its good.
+#define HEATING_TARGET_UPPER (+2)
+#define HEATING_TARGET_LOWER (-1)
+#define COOLING_TARGET_UPPER (+1)
+#define COOLING_TARGET_LOWER (-2)
+
+#define COOLING_TARGET ((COOLING_TARGET_UPPER+COOLING_TARGET_LOWER)/2)
+#define HEATING_TARGET ((HEATING_TARGET_UPPER+HEATING_TARGET_LOWER)/2)
+
+// maximum history to take into account, in seconds
+#define MAX_HEAT_TIME_FOR_ESTIMATE 600
+#define MAX_COOL_TIME_FOR_ESTIMATE 1200
 
 class TempControl {
 public:
@@ -18,6 +43,10 @@ public:
 	virtual ~TempControl();
 	void AdjustTemp();
 	void UpdateTimers();
+	void UpdateState();
+	void ReinitializeControl(void);
+
+	void updateOutputs(void);
 	void SetPrimaryTemp(int);
 	float GetBeerTemp();
 	float GetFridgeTemp();
@@ -26,15 +55,51 @@ public:
 	void SerialPrintBeerTemp();
 	void LcdPrintBeerTemp(OLEDFourBit *);
 
+	enum modes_t{
+	  FRIDGE_CONSTANT,
+	  BEER_CONSTANT,
+	  BEER_PROFILE
+	};
+
+	enum states_t{
+	  UNKNOWN,
+	  COOLING,
+	  HEATING,
+	  IDLE,
+	  STARTUP,
+	  DOOR_OPEN
+	};
+
+	modes_t GetMode();
+
 private:
 	BeerTempController *_beerTemp;
 	FridgeTempController *_fridgeTemp;
 	Relay *_Compressor;
 	Relay *_Heater;
+	Settings *_settings;
+
 	int _primaryController;
 	int _timer;
 	byte _Flags;
-	byte _state;
+	states_t _state;
+	modes_t _mode;
+	float _Kp;
+	float _Kd;
+	unsigned long _lastCoolTime;
+	unsigned long _lastHeatTime;
+	unsigned long _lastIdleTime;
+	unsigned char _doNegPeakDetect;
+	unsigned char _doPosPeakDetect;
+	float _posPeak;
+	float _negPeak;
+	void detectPeaks(void);
+	void UpdatePeakDetectionTimer();
+	unsigned long timeSinceCooling(void);
+	unsigned long timeSinceHeating(void);
+	unsigned long timeSinceIdle(void);
+	float _heatOvershootEstimator;
+	float _coolOvershootEstimator;
 };
 
 #endif /* TEMPCONTROL_H_ */
