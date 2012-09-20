@@ -22,6 +22,7 @@ public:
 	float GetTemp();
 	float GetTempActual();
 	float GetTempSetting();
+	float SetTempSetting(float);
 	void UpdateTimer();
 	void Update();
 	float GetThirdOrderTemp();

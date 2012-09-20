@@ -56,6 +56,11 @@ float FridgeTempController::GetTempSetting()
 	return TemperatureSetting;
 }
 
+float FridgeTempController::SetTempSetting(float newSetting)
+{
+	return TemperatureSetting = newSetting;
+}
+
 void FridgeTempController::SetNegPeakEstimate()
 {
   SettingForNegPeakEstimate = TemperatureSetting;
@@ -105,12 +110,15 @@ void FridgeTempController::UpdateTimer()
 	_timer+=200;
 
 	//Check the timers
-	if(_timer%1000==0)
-		_flags |= updateTemperatures_SERVICE;
-	if(_timer%10000==0)
-		_flags |= updateSlowFilteredTemperatures_SERVICE;
-	if(_timer%60000==0)
-		_flags |= updateSlope_SERVICE;
+	if(_timer%1000==0){
+		updateTemperatures();
+	}
+	if(_timer%10000==0){
+		updateSlowFilteredTemperatures();
+	}
+	if(_timer%60000==0){
+		updateSlope();
+	}
 	if(_timer>=60000)
 		_flags = 0;
 

@@ -21,6 +21,7 @@ public:
 	float GetTemp();
 	float GetTempActual();
 	float GetTempSetting();
+	float SetTempSetting(float);
 	void UpdateTimer();
 	void Update();
 	float GetThirdOrderTemp();
@@ -34,6 +35,8 @@ public:
 	// Slow filtered Temperatures used for peak detection
 	float TempSlow[4];
 	float TempFiltSlow[4];
+	float Slope;
+
 
 private:
 	TempSensors *_Temp;
@@ -43,8 +46,6 @@ private:
 	// Fast filtered temperatures
 	float TemperatureActual;
 	float TemperatureSetting;
-
-	float Slope;
 
 	//history for slope calculation
 	float TempHistory[30];

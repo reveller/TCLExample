@@ -44,9 +44,10 @@ public:
 	void AdjustTemp();
 	void UpdateTimers();
 	void UpdateState();
+	void UpdatePIDSettings(void);
 	void ReinitializeControl(void);
 
-	void updateOutputs(void);
+	void UpdateOutputs(void);
 	void SetPrimaryTemp(int);
 	float GetBeerTemp();
 	float GetFridgeTemp();
@@ -86,20 +87,22 @@ private:
 	modes_t _mode;
 	float _Kp;
 	float _Kd;
+	float _Ki;
 	unsigned long _lastCoolTime;
 	unsigned long _lastHeatTime;
 	unsigned long _lastIdleTime;
-	unsigned char _doNegPeakDetect;
-	unsigned char _doPosPeakDetect;
+	bool _doNegPeakDetect;
+	bool _doPosPeakDetect;
 	float _posPeak;
 	float _negPeak;
 	void detectPeaks(void);
-	void UpdatePeakDetectionTimer();
+	void UpdateTimer();
 	unsigned long timeSinceCooling(void);
 	unsigned long timeSinceHeating(void);
 	unsigned long timeSinceIdle(void);
 	float _heatOvershootEstimator;
 	float _coolOvershootEstimator;
+	float differenceIntegral;
 };
 
 #endif /* TEMPCONTROL_H_ */
