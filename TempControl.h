@@ -45,9 +45,10 @@ public:
 	void UpdateTimers();
 	void UpdateState();
 	void UpdatePIDSettings(void);
-	void ReinitializeControl(void);
+	void InitializePIDControl(void);
 
 	void UpdateOutputs(void);
+	void UpdateDisplay();
 	void SetPrimaryTemp(int);
 	float GetBeerTemp();
 	float GetFridgeTemp();
@@ -55,6 +56,8 @@ public:
 	void LcdPrintFridgeTemp(OLEDFourBit *);
 	void SerialPrintBeerTemp();
 	void LcdPrintBeerTemp(OLEDFourBit *);
+	float GetCurrentTempSetting();
+	void SetCurrentTempSetting(char);
 
 	enum modes_t{
 	  FRIDGE_CONSTANT,

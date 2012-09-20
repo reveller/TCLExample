@@ -15,6 +15,10 @@ TempControl::TempControl() {
 	_beerTemp   = new BeerTempController("Beer", 1);
 	_fridgeTemp = new FridgeTempController();
 	_settings   = new Settings();
+
+	InitializePIDControl();
+	UpdatePIDSettings();
+
 	_timer=0;
 }
 
@@ -25,8 +29,6 @@ TempControl::~TempControl() {
 void TempControl::AdjustTemp()
 {
 	//Run through the updates
-	UpdateState();
-	UpdateOutputs();
 }
 
 // update fridge temperature setting, difference with beer setting is PID actuator
@@ -61,6 +63,26 @@ void TempControl::UpdatePIDSettings(void){
   else{
 	  // something is horribly wrong
   }
+}
+
+float TempControl::GetCurrentTempSetting()
+{
+	if(_mode == BEER_CONSTANT || _mode == BEER_PROFILE){
+		return _beerTemp->GetTempSetting();
+	}
+	else {
+		return _fridgeTemp->GetTempSetting();
+	}
+}
+
+void TempControl::SetCurrentTempSetting(char adj)
+{
+	if(_mode == BEER_CONSTANT || _mode == BEER_PROFILE){
+		_beerTemp->SetTempSetting(_beerTemp->GetTempSetting() + (float)adj);
+	}
+	else {
+		_beerTemp->SetTempSetting(_beerTemp->GetTempSetting() + (float)adj);
+	}
 }
 
 void TempControl::UpdateState()
@@ -141,7 +163,8 @@ void TempControl::UpdateState()
 		return;
 	case UNKNOWN:
 	default:
-		_state = UNKNOWN; //go to unknown state, should never happen
+		_state = IDLE; //go to unknown state, should never happen
+		break;
 	}
 }
 
@@ -162,10 +185,15 @@ void TempControl::UpdateTimer()
 		detectPeaks();			// Detect Pos and Neg Temp Peaks
 		UpdatePIDSettings();	// Update Kp, Ki and Kd settings
 	}
+	if(_timer%1000 == 0){
+		UpdateState();			// Update State and Relay Outputs once a second
+		UpdateOutputs();
+	}
 	if(_timer>=60000)
 		_Flags = 0;
 
 }
+
 void TempControl::SetPrimaryTemp(int TempControllerId)
 {
 	// _primaryController = SetPrimaryTemp;
@@ -173,12 +201,12 @@ void TempControl::SetPrimaryTemp(int TempControllerId)
 
 float TempControl::GetBeerTemp()
 {
-	return _beerTemp->GetTemp();
+	return _beerTemp->GetTempActual();
 }
 
 float TempControl::GetFridgeTemp()
 {
-	return _fridgeTemp->GetTemp();
+	return _fridgeTemp->GetTempActual();
 }
 
 TempControl::modes_t TempControl::GetMode(){
@@ -324,7 +352,7 @@ unsigned long TempControl::timeSinceIdle(void){
   return timeSinceLastOn;
 }
 
-void TempControl::ReinitializeControl(void){
+void TempControl::InitializePIDControl(void){
    if(_beerTemp->GetTempSetting() < _beerTemp->TempFiltSlow[3]){
      _Kp=KpCool;
      _Kd=KdCool;

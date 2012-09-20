@@ -42,8 +42,6 @@ OLEDFourBit lcd(3, 4, 5, 6, 7, 8, 9);
 
 TempControl *tempControl;
 
-Settings settings();
-
 void setup(void)
 {
 	// start serial port
@@ -79,19 +77,20 @@ void timerISR(){
 
 void loop(void)
 {
+	static bool menuFlag = 0;
+
 	if (Services & CLK_SERVICE){
 		CLKControl();
 	}
 
-	tempControl->AdjustTemp();
+	tempControl->UpdateTimers();
 
-	if (buttonUp.IsPressed())
-		buttonSetting++;
+	if (buttonUp.IsPressed() && menuFlag)
+		tempControl->SetCurrentTempSetting(1);
 
-	if (buttonDown.IsPressed())
-		buttonSetting--;
+	if (buttonDown.IsPressed() && menuFlag)
+		tempControl->SetCurrentTempSetting(-1);
 
-	static bool menuFlag = 0;
 	if (buttonMenu.IsPressed()){
 		lcd.setCursor(15,1);
 		menuFlag = !menuFlag;
@@ -100,10 +99,6 @@ void loop(void)
 		else
 			lcd.print("    ");
 	}
-
-	lcd.setCursor(0,1);
-	lcd.print("Setting: ");
-	lcd.print(buttonSetting);
 
 	if(Serial.available()){
 		processSyncMessage();
@@ -117,13 +112,16 @@ void CLKControl(){
 		OLEDClockDisplay();
 	}
 
-	tempControl->SerialPrintFridgeTemp();
+	lcd.setCursor(0,1);
+	lcd.print("Setting: ");
+	lcd.print(tempControl->GetCurrentTempSetting());
 	lcd.setCursor(0,2);
 	tempControl->LcdPrintFridgeTemp(&lcd);
-
-	tempControl->SerialPrintBeerTemp();
 	lcd.setCursor(0,3);
 	tempControl->LcdPrintBeerTemp(&lcd);
+
+	tempControl->SerialPrintFridgeTemp();
+	tempControl->SerialPrintBeerTemp();
 
 	Services &= ~CLK_SERVICE;		// reset the service flag
 }

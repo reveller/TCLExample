@@ -19,14 +19,14 @@ FridgeTempController::FridgeTempController() {
 		TempFiltFast[i] = TemperatureActual;
 	}
 	for (int i = 0; i < 100; i++) {
-//		updateTemperatures();
+		updateTemperatures();
 	}
 	for (int i = 0; i < 4; i++) {
 		TempSlow[i] = TempFiltFast[3];
 		TempFiltSlow[i] = TempFiltFast[3];
 	}
 	for (int i = 0; i < 100; i++) {
-//		updateSlowFilteredTemperatures();
+		updateSlowFilteredTemperatures();
 	}
 
 	Slope = 0;
@@ -110,10 +110,11 @@ void FridgeTempController::UpdateTimer()
 	_timer+=200;
 
 	//Check the timers
-	if(_timer%1000==0){
-		updateTemperatures();
-	}
-	if(_timer%10000==0){
+	updateTemperatures();					// Update Fast Temperatures every 200ms
+//	if(_timer%1000==0){
+//		updateTemperatures();
+//	}
+	if(_timer%10000==0){					// Update Slow Temperatures every 10 seconds
 		updateSlowFilteredTemperatures();
 	}
 	if(_timer%60000==0){
