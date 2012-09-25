@@ -26,8 +26,8 @@ public:
 	void UpdateTimer();
 	void Update();
 	float GetThirdOrderTemp();
-	void SerialPrintTemp();
-	void LcdPrintTemp(OLEDFourBit *);
+	void SerialPrintActualTemp();
+	void LcdPrintActualTemp(OLEDFourBit *);
 	void SetNegPeakEstimate();
 	void SetPosPeakEstimate();
 	float GetSettingForPosPeakEstimate();
@@ -46,8 +46,8 @@ public:
 	float TempFiltSlow[4];
 private:
 	TempSensors *_Temp;
-	int _timer;
-	byte _flags;
+	unsigned long _timer;
+//	byte _flags;
 
 
 	float Slope;

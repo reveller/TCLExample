@@ -6,7 +6,7 @@
  */
 
 
-#include <EEPROMClass.h>
+#include <EEPROM.h>
 #include "Settings.h"
 
 Settings::Settings() {

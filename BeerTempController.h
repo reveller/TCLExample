@@ -23,11 +23,11 @@ public:
 	float GetTempSetting();
 	float SetTempSetting(float);
 	void UpdateTimer();
-	void Update();
+//	void Update();
 	float GetThirdOrderTemp();
 
-	void SerialPrintTemp();
-	void LcdPrintTemp(OLEDFourBit *);
+	void SerialPrintActualTemp();
+	void LcdPrintActualTemp(OLEDFourBit *);
 
 	float TempFast[4];
 	float TempFiltFast[4];
@@ -40,7 +40,7 @@ public:
 
 private:
 	TempSensors *_Temp;
-	int _timer;
+	unsigned long _timer;
 	byte _flags;
 
 	// Fast filtered temperatures

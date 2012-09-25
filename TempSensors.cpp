@@ -43,7 +43,7 @@ TempSensors::TempSensors(const char *initName, uint8_t initIndex) {
 	CurrentTemp = 0;
 	strncpy(Name, initName, 20);
 	SensorIndex = initIndex;
-	_resolution = 10;
+	_resolution = 9;
 	_sensors->getAddress(_sensorAddr, SensorIndex);
 	_sensors->setResolution(_resolution);
 }
@@ -75,8 +75,12 @@ int TempSensors::GetAddress(char *addrBuffer)
 
 float TempSensors::GetTemperature()
 {
+//	Serial.print("Requesting Temp for: ");
+//	Serial.print(Name);
+//	Serial.print(" ");
 	requestTemp();
 	CurrentTemp = _sensors->getTempCByIndex(SensorIndex);
+//	Serial.println(CurrentTemp);
 	return CurrentTemp;
 }
 

@@ -71,34 +71,58 @@ void setup(void)
 }
 
 void timerISR(){
+//	Serial.print('.');
 	Services |= CLK_SERVICE;			// service Clock once a second
-	tempControl->UpdateTimers();
+//	Serial.print('`');
 }
 
 void loop(void)
 {
-	static bool menuFlag = 0;
+	static TempControl::modes_t menuFlag = TempControl::FRIDGE_CONSTANT;
+	byte menuTemp = 0;
+	char modeStrDest[20];
 
 	if (Services & CLK_SERVICE){
 		CLKControl();
 	}
 
-	tempControl->UpdateTimers();
+	if (buttonUp.IsPressed()){
+		Serial.println("UP Button Pressed ");
+//		if (menuFlag){
+			tempControl->SetCurrentTempSetting(1);
+//		}
+	}
 
-	if (buttonUp.IsPressed() && menuFlag)
-		tempControl->SetCurrentTempSetting(1);
-
-	if (buttonDown.IsPressed() && menuFlag)
-		tempControl->SetCurrentTempSetting(-1);
+	if (buttonDown.IsPressed()){
+		Serial.println("DOWN Button Pressed ");
+//		if (menuFlag){
+			tempControl->SetCurrentTempSetting(-1);
+//		}
+	}
 
 	if (buttonMenu.IsPressed()){
-		lcd.setCursor(15,1);
-		menuFlag = !menuFlag;
-		if(menuFlag)
-			lcd.print("MENU");
-		else
-			lcd.print("    ");
+		menuTemp = (byte)menuFlag + 1;
+		if (menuTemp > TempControl::modes_LAST){
+			menuTemp = TempControl::modes_FIRST;
+		}
+		menuFlag = (TempControl::modes_t)menuTemp;
+		tempControl->SetMode(menuFlag);
+
+		if (tempControl->GetModeStr(modeStrDest) > 0){
+			Serial.print("Mode set to:[");
+			Serial.print(modeStrDest);
+			Serial.println("]");
+
+			lcd.setCursor(10,1);
+			lcd.print(modeStrDest);
+		}
 	}
+//		if(menuFlag) {
+//			lcd.print(tempControl->GetMode());
+//		}
+//		else{
+//			lcd.print("    ");
+//		}
 
 	if(Serial.available()){
 		processSyncMessage();
@@ -107,21 +131,25 @@ void loop(void)
 
 
 void CLKControl(){
+//	Serial.println(millis());
 	if(timeStatus() != timeNotSet){  // here if the time has been set
 		lcd.setCursor(12,1);
 		OLEDClockDisplay();
 	}
 
 	lcd.setCursor(0,1);
-	lcd.print("Setting: ");
-	lcd.print(tempControl->GetCurrentTempSetting());
+	lcd.print("Set ");
+	lcd.print(tempControl->GetCurrentTempSetting(), 2);
+
 	lcd.setCursor(0,2);
 	tempControl->LcdPrintFridgeTemp(&lcd);
 	lcd.setCursor(0,3);
 	tempControl->LcdPrintBeerTemp(&lcd);
 
-	tempControl->SerialPrintFridgeTemp();
-	tempControl->SerialPrintBeerTemp();
+//	tempControl->SerialPrintFridgeTemp();
+//	tempControl->SerialPrintBeerTemp();
+
+	tempControl->UpdateTimers();
 
 	Services &= ~CLK_SERVICE;		// reset the service flag
 }

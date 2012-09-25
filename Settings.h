@@ -8,7 +8,7 @@
 #ifndef Settings_H_
 #define Settings_H_
 
-#include <EEPROMClass.h>
+#include <EEPROM.h>
 
 #define EEPROM_MODE 0
 #define EEPROM_BEER_SETTING 1

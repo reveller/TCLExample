@@ -16,8 +16,18 @@ TempControl::TempControl() {
 	_fridgeTemp = new FridgeTempController();
 	_settings   = new Settings();
 
+	_mode       = FRIDGE_CONSTANT;
+	_state		= STARTUP;
+
 	InitializePIDControl();
 	UpdatePIDSettings();
+
+	_lastCoolTime = 0;
+	_lastHeatTime = 0;
+	_lastIdleTime = 0;
+
+	_doNegPeakDetect = false;
+	_doPosPeakDetect = false;
 
 	_timer=0;
 }
@@ -54,11 +64,11 @@ void TempControl::UpdatePIDSettings(void){
       _Kp = constrain(_Kp + (KpHeat-KpCool)/(360*3), KpCool, KpHeat);
       _Kd = constrain(_Kd + (KdHeat-KdCool)/(360*3), KdHeat, KdCool);
     }
-    _fridgeTemp->SetTempSetting(constrain(_beerTemp->GetTempSetting() + (_Kp * beerTemperatureDifference) + (_Ki * differenceIntegral) + (_Kd * _beerTemp->Slope), 40, 300));
+    _beerTemp->SetTempSetting(constrain(_beerTemp->GetTempSetting() + (_Kp * beerTemperatureDifference) + (_Ki * differenceIntegral) + (_Kd * _beerTemp->Slope), 40, 300));
   }
   else if(_mode == FRIDGE_CONSTANT){
     // FridgeTemperature is set manually
-    _beerTemp->SetTempSetting(0.0);
+    // _beerTemp->SetTempSetting(0.0);
   }
   else{
 	  // something is horribly wrong
@@ -77,11 +87,11 @@ float TempControl::GetCurrentTempSetting()
 
 void TempControl::SetCurrentTempSetting(char adj)
 {
-	if(_mode == BEER_CONSTANT || _mode == BEER_PROFILE){
+	if(_mode == BEER_CONSTANT){
 		_beerTemp->SetTempSetting(_beerTemp->GetTempSetting() + (float)adj);
 	}
-	else {
-		_beerTemp->SetTempSetting(_beerTemp->GetTempSetting() + (float)adj);
+	else if(_mode == FRIDGE_CONSTANT){
+		_fridgeTemp->SetTempSetting(_fridgeTemp->GetTempSetting() + (float)adj);
 	}
 }
 
@@ -89,6 +99,33 @@ void TempControl::UpdateState()
 {
 	float estimatedOvershoot;
 	float estimatedPeakTemperature;
+
+	Serial.print("timeSinceCooling:");
+	Serial.print(timeSinceCooling());
+	Serial.print(" timeSinceHeating:");
+	Serial.print(timeSinceHeating());
+	Serial.print( " doNegPeakDetect:");
+	_doNegPeakDetect ? Serial.print(" true ") : Serial.print(" false ");
+	Serial.print( " doPosPeakDetect:");
+	_doPosPeakDetect ? Serial.print(" true ") : Serial.print(" false ");
+	Serial.println();
+	Serial.print("fridgeTempActual:");
+	Serial.print(_fridgeTemp->GetTempActual());
+	Serial.print(" fridgeTempSetting:");
+	Serial.print(_fridgeTemp->GetTempSetting());
+	Serial.print(" to ");
+	Serial.print(_fridgeTemp->GetTempSetting() + IDLE_RANGE_HIGH);
+	Serial.println();
+	Serial.print("beerTempActual:");
+	Serial.print(_beerTemp->TempFiltSlow[3]);
+	Serial.print(" beerTempSetting:");
+	Serial.print(_beerTemp->GetTempSetting());
+	Serial.print(" to ");
+	Serial.print(_beerTemp->GetTempSetting() + 0.5);
+	Serial.println();
+
+
+
 	//update state
 	//	if(digitalRead(doorPin) == HIGH){
 	//		if(state!=DOOR_OPEN){
@@ -102,9 +139,9 @@ void TempControl::UpdateState()
 	case IDLE:
 		_lastIdleTime=millis();
 		if(((timeSinceCooling() > 900000UL || _doNegPeakDetect == false) &&
-				(timeSinceHeating()>600000UL || _doPosPeakDetect == false)) ||
+				(timeSinceHeating() > 600000UL || _doPosPeakDetect == false)) ||
 				_state==STARTUP){ //if cooling is 15 min ago and heating 10
-			if(_fridgeTemp->GetTempActual()> _fridgeTemp->GetTempSetting() + IDLE_RANGE_HIGH){
+			if(_fridgeTemp->GetTempActual() > _fridgeTemp->GetTempSetting() + IDLE_RANGE_HIGH){
 				if (_mode!=FRIDGE_CONSTANT){
 					if(_beerTemp->TempFiltSlow[3] > _beerTemp->GetTempSetting() + 0.5){ // only start cooling when beer is too warm (0.05 degree idle space)
 						_state=COOLING;
@@ -171,26 +208,43 @@ void TempControl::UpdateState()
 //Update the timers
 void TempControl::UpdateTimers()
 {
+//	Serial.println("beerUpdate");
 	_beerTemp->UpdateTimer();
+//	Serial.println("fridgeUpdate");
 	_fridgeTemp->UpdateTimer();
+//	Serial.println("tempControlUpdate");
 	UpdateTimer();
+//	Serial.println("DoneUpdate");
 }
 
 void TempControl::UpdateTimer()
 {
+	char stateStrDest[20];
 	_timer+=200;
-
+	Serial.println();
+	Serial.print("_timer in UpdateTimer:");
+	Serial.println(_timer);
 	//Check the timers
-	if(_timer%10000==0){		// Every 10 seconds
+	if((_timer % 10000) == 0){		// Every 10 seconds
 		detectPeaks();			// Detect Pos and Neg Temp Peaks
 		UpdatePIDSettings();	// Update Kp, Ki and Kd settings
 	}
-	if(_timer%1000 == 0){
+	if((_timer % 1000) == 0){
+		GetStateStr(stateStrDest);
+		Serial.print("State set to [");
+		Serial.print(stateStrDest);
+		Serial.println(']');
+
+		GetModeStr(stateStrDest);
+		Serial.print("Mode set to [");
+		Serial.print(stateStrDest);
+		Serial.println(']');
+
 		UpdateState();			// Update State and Relay Outputs once a second
 		UpdateOutputs();
 	}
-	if(_timer>=60000)
-		_Flags = 0;
+	if((_timer % 60000)== 0)
+		_timer = 0;
 
 }
 
@@ -213,24 +267,82 @@ TempControl::modes_t TempControl::GetMode(){
 	return _mode;
 }
 
+int8_t TempControl::GetModeStr(char *dest){
+
+	switch(_mode){
+	case FRIDGE_CONSTANT:
+		strncpy(dest, "FRDG_CONST", 10);
+		dest[10] = '\0';
+		return strlen (dest);
+	case BEER_CONSTANT:
+		strncpy(dest, "BEER_CONST", 10);
+		dest[10] = '\0';
+		return strlen (dest);
+	case BEER_PROFILE:
+		strncpy(dest, "BEER_PROFL", 10);
+		dest[10] = '\0';
+		return strlen (dest);
+	default:
+		return -1;
+	}
+}
+
+int8_t TempControl::GetStateStr(char *dest){
+
+	char *src;
+	int8_t retval;
+
+	switch(_state){
+		case UNKNOWN:
+			src = "UNKNOWN";
+			break;
+		case COOLING:
+			src = "COOLING";
+			break;
+		case HEATING:
+			src = "HEATING";
+			break;
+		case IDLE:
+			src = "IDLE";
+			break;
+		case STARTUP:
+			src = "STARTUP";
+			break;
+		case DOOR_OPEN:
+			src = "DOOR_OPEN";
+			break;
+		default:
+			dest[0] = '\0';
+			return -1;
+	}
+	retval = strlen(src);
+	strncpy(dest, src, retval);
+	dest[retval] = '\0';
+	return retval;
+}
+
+void TempControl::SetMode(modes_t newMode){
+	_mode = newMode;
+}
+
 void TempControl::SerialPrintFridgeTemp()
 {
-	return _fridgeTemp->SerialPrintTemp();
+	return _fridgeTemp->SerialPrintActualTemp();
 }
 
 void TempControl::LcdPrintFridgeTemp(OLEDFourBit *lcd)
 {
-	return _fridgeTemp->LcdPrintTemp(lcd);
+	return _fridgeTemp->LcdPrintActualTemp(lcd);
 }
 
 void TempControl::SerialPrintBeerTemp()
 {
-	return _beerTemp->SerialPrintTemp();
+	return _beerTemp->SerialPrintActualTemp();
 }
 
 void TempControl::LcdPrintBeerTemp(OLEDFourBit *lcd)
 {
-	return _beerTemp->LcdPrintTemp(lcd);
+	return _beerTemp->LcdPrintActualTemp(lcd);
 }
 
 void TempControl::UpdateOutputs(void){

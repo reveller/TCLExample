@@ -62,7 +62,9 @@ public:
 	enum modes_t{
 	  FRIDGE_CONSTANT,
 	  BEER_CONSTANT,
-	  BEER_PROFILE
+	  BEER_PROFILE,
+	  modes_FIRST = FRIDGE_CONSTANT,
+	  modes_LAST = BEER_PROFILE
 	};
 
 	enum states_t{
@@ -71,10 +73,15 @@ public:
 	  HEATING,
 	  IDLE,
 	  STARTUP,
-	  DOOR_OPEN
+	  DOOR_OPEN,
+	  states_FIRST = UNKNOWN,
+	  states_LAST = DOOR_OPEN
 	};
 
 	modes_t GetMode();
+	void SetMode(modes_t);
+	int8_t GetModeStr(char *);
+	int8_t GetStateStr(char *);
 
 private:
 	BeerTempController *_beerTemp;
@@ -84,8 +91,7 @@ private:
 	Settings *_settings;
 
 	int _primaryController;
-	int _timer;
-	byte _Flags;
+	unsigned long _timer;
 	states_t _state;
 	modes_t _mode;
 	float _Kp;

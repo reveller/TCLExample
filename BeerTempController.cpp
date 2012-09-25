@@ -10,25 +10,24 @@
 
 BeerTempController::BeerTempController(const char* initName, uint8_t initIndex)
 {
+	_timer = 0;
 	_Temp = new TempSensors("Beer",1);
 
 	_Temp->_lastTempRequest = 0;
 
+	TemperatureSetting = 20;
+//	Serial.println("BeerTempController");
 	TemperatureActual = _Temp->GetTemperature();
 	for (int i = 0; i < 4; i++) {
 		TempFast[i] = TemperatureActual;
 		TempFiltFast[i] = TemperatureActual;
 	}
-	for (int i = 0; i < 100; i++) {
-		updateTemperatures();
-	}
+//		updateTemperatures();
 	for (int i = 0; i < 4; i++) {
 		TempSlow[i] = TempFiltFast[3];
 		TempFiltSlow[i] = TempFiltFast[3];
 	}
-	for (int i = 0; i < 100; i++) {
-		updateSlowFilteredTemperatures();
-	}
+//		updateSlowFilteredTemperatures();
 
 	Slope = 0;
 	TempHistoryIndex = 0;
@@ -42,11 +41,11 @@ BeerTempController::~BeerTempController() {
 	// TODO Auto-generated destructor stub
 }
 
-float BeerTempController::GetTemp()
-{
-	return _Temp->GetTemperature();
-}
-
+//float BeerTempController::GetTemp()
+//{
+//	return _Temp->GetTemperature();
+//}
+//
 float BeerTempController::SetTempSetting(float newSetting)
 {
 	return TemperatureSetting = newSetting;
@@ -61,30 +60,6 @@ float BeerTempController::GetTempSetting()
 {
 	return TemperatureSetting;
 }
-void BeerTempController::Update()
-{
-	//Update Temp Array 200ms
-	//Update Temp Slope Slow Filtered 10sec
-	//Update Temp Slope 60secs
-
-	if (_flags & updateTemperatures_SERVICE){
-		Serial.println("updateTemperatures");
-		updateTemperatures();
-		_flags &= ~updateTemperatures_SERVICE;
-	}
-	if (_flags & updateSlowFilteredTemperatures_SERVICE){
-		Serial.println("updateSlowFilteredTemperatures");
-		updateSlowFilteredTemperatures();
-		_flags &= ~updateSlowFilteredTemperatures_SERVICE;
-	}
-	if (_flags & updateSlope_SERVICE){
-		Serial.println("updateSlope");
-		updateSlope();
-		_flags &= ~updateSlope_SERVICE;
-	}
-
-}
-
 
 float BeerTempController::GetThirdOrderTemp()
 {
@@ -96,19 +71,24 @@ void BeerTempController::UpdateTimer()
 {
 	_timer+=200;
 
+//	Serial.print("Beer Before ");
+//	Serial.println(_timer);
 	//Check the timers
-	updateTemperatures();					// Update Fast Temperatures every 200ms
-//	if(_timer%1000==0){
-//		updateTemperatures();
-//	}
-	if(_timer%10000==0){					// Update Slow Temperatures every 10 seconds
+	if ((_timer % 200) == 0){
+//		Serial.println("Updating Beer Fast Temps");
+		updateTemperatures();					// Update Fast Temperatures every 200ms
+	}
+	if((_timer % 10000) == 0){					// Update Slow Temperatures every 10 seconds
+//		Serial.println("Updating Beer Slow Temps");
 		updateSlowFilteredTemperatures();
 	}
-	if(_timer%60000==0){
+	if((_timer % 60000) == 0){
+//		Serial.println("Updating Beer Slope");
 		updateSlope();
+		_timer = 0;
 	}
-	if(_timer>=60000)
-		_flags = 0;
+//	Serial.print("Beer After ");
+//	Serial.println(_timer);
 }
 
 void BeerTempController::updateSlope()  //called every minute
@@ -142,43 +122,66 @@ void BeerTempController::updateSlowFilteredTemperatures() //called every 10 seco
 
 
 void BeerTempController::updateTemperatures() { //called every 200 milliseconds
+//	Serial.println("Beer1");
+//	Serial.println(TempFast[1]);
 	TempFast[0] = TempFast[1];
+//	Serial.println("Beer2");
+//	Serial.println(TempFast[2]);
 	TempFast[1] = TempFast[2];
+//	Serial.println("Beer3");
+//	Serial.println(TempFast[3]);
 	TempFast[2] = TempFast[3];
 	TempFast[3] = _Temp->GetTemperature();
+//	Serial.println("Beer4");
+//	Serial.println(TempFast[3]);
+	if (TempFast[2] != TempFast[3]){
+		Serial.print("BeerActual: ");
+		Serial.print(TempFast[2],10);
+		Serial.print(" ");
+		Serial.println(TempFast[3],10);
+	}
 
 	// Butterworth filter with cutoff frequency 0.01*sample frequency (FS=5Hz)
+//	Serial.println("Beer5");
+//	Serial.println(TempFiltFast[1]);
 	TempFiltFast[0] = TempFiltFast[1];
+//	Serial.println("Beer6");
+//	Serial.println(TempFiltFast[2]);
 	TempFiltFast[1] = TempFiltFast[2];
+//	Serial.println("Beer7");
+//	Serial.println(TempFiltFast[3]);
 	TempFiltFast[2] = TempFiltFast[3];
+//	Serial.println("Beer8");
+//	Serial.println(TempFast[0]);
 	TempFiltFast[3] = (TempFast[0] + TempFast[3]
 		+ 3 * (TempFast[1] + TempFast[2])) / 3.430944333e+04
 		+ (0.8818931306 * TempFiltFast[0])
 		+ (-2.7564831952 * TempFiltFast[1])
 		+ (2.8743568927 * TempFiltFast[2]);
-
+//	Serial.println("Beer9");
+//	Serial.println(TempFiltFast[3]);
 	TemperatureActual = TempFiltFast[3];
 
 	Services &= ~updateTemperatures_SERVICE;		// reset the service flag
 }
 
-void BeerTempController::SerialPrintTemp()
+void BeerTempController::SerialPrintActualTemp()
 {
 	char myName[20];
 	_Temp->GetName(myName);
 	Serial.print(myName);
 	Serial.print(" = ");
-	Serial.print(_Temp->GetTemperature());
+	Serial.print(TemperatureActual);
 	Serial.println((char)248);	// ASCII 248 = degree symbol
 }
 
-void BeerTempController::LcdPrintTemp(OLEDFourBit *lcd)
+void BeerTempController::LcdPrintActualTemp(OLEDFourBit *lcd)
 {
 	char myName[20];
 	_Temp->GetName(myName);
 	lcd->print(myName);
 	lcd->print(" ");
-	lcd->print(_Temp->GetTemperature());
+	lcd->print(TemperatureActual);
 	lcd->print((char)223);		// Print degree symbol 0xDF b1101 1111
 }
 
