@@ -7,6 +7,7 @@
 
 #include "TempControl.h"
 #include "OLEDFourBit.h"
+#include "TCLExample.h"
 
 TempControl::TempControl() {
 	// TODO Auto-generated constructor stub
@@ -28,8 +29,13 @@ TempControl::TempControl() {
 
 	_doNegPeakDetect = false;
 	_doPosPeakDetect = false;
+	_negPeak         = STARTUP_TEMP_DEFAULT - 1;
+	_posPeak		 = STARTUP_TEMP_DEFAULT + 1;
 
-	_timer=0;
+	_heatOvershootEstimator = 0.2;
+	_coolOvershootEstimator = 5;
+
+	_timer        = 0;
 }
 
 TempControl::~TempControl() {
@@ -43,36 +49,36 @@ void TempControl::AdjustTemp()
 
 // update fridge temperature setting, difference with beer setting is PID actuator
 void TempControl::UpdatePIDSettings(void){
-  if(_mode == BEER_CONSTANT || _mode == BEER_PROFILE){
-    float beerTemperatureDifference =  _beerTemp->GetTempSetting() - _beerTemp->TempFiltSlow[3];
-    if((abs(beerTemperatureDifference) < 5)
-    		&& ((_beerTemp->Slope <= 0.7 && _beerTemp->Slope >= 0)
-    		|| (_beerTemp->Slope >= -1.4 && _beerTemp->Slope <= 0))){     //difference is smaller than .5 degree and slope is almost horizontal
-      if(abs(beerTemperatureDifference)> 0.5){
-        differenceIntegral = differenceIntegral + beerTemperatureDifference;
-      }
-    }
-    else{
-      differenceIntegral = differenceIntegral*0.9;
-    }
+	if(_mode == BEER_CONSTANT || _mode == BEER_PROFILE){
+		float beerTemperatureDifference =  _beerTemp->GetTempSetting() - _beerTemp->TempFiltSlow[3];
+		if((abs(beerTemperatureDifference) < 5)
+				&& ((_beerTemp->Slope <= 0.7 && _beerTemp->Slope >= 0)
+						|| (_beerTemp->Slope >= -1.4 && _beerTemp->Slope <= 0))){     //difference is smaller than .5 degree and slope is almost horizontal
+			if(abs(beerTemperatureDifference)> 0.5){
+				differenceIntegral = differenceIntegral + beerTemperatureDifference;
+			}
+		}
+		else{
+			differenceIntegral = differenceIntegral*0.9;
+		}
 
-    if(beerTemperatureDifference<0){ //linearly go to cool parameters in 3 hours
-      _Kp = constrain(_Kp + (KpCool-KpHeat)/(360*3), KpCool, KpHeat);
-      _Kd = constrain(_Kd + (KdCool-KdHeat)/(360*3), KdHeat, KdCool);
-    }
-    else{ //linearly go to heat parameters in 3 hours
-      _Kp = constrain(_Kp + (KpHeat-KpCool)/(360*3), KpCool, KpHeat);
-      _Kd = constrain(_Kd + (KdHeat-KdCool)/(360*3), KdHeat, KdCool);
-    }
-    _beerTemp->SetTempSetting(constrain(_beerTemp->GetTempSetting() + (_Kp * beerTemperatureDifference) + (_Ki * differenceIntegral) + (_Kd * _beerTemp->Slope), 40, 300));
-  }
-  else if(_mode == FRIDGE_CONSTANT){
-    // FridgeTemperature is set manually
-    // _beerTemp->SetTempSetting(0.0);
-  }
-  else{
-	  // something is horribly wrong
-  }
+		if(beerTemperatureDifference<0){ //linearly go to cool parameters in 3 hours
+			_Kp = constrain(_Kp + (KpCool-KpHeat)/(360*3), KpCool, KpHeat);
+			_Kd = constrain(_Kd + (KdCool-KdHeat)/(360*3), KdHeat, KdCool);
+		}
+		else{ //linearly go to heat parameters in 3 hours
+			_Kp = constrain(_Kp + (KpHeat-KpCool)/(360*3), KpCool, KpHeat);
+			_Kd = constrain(_Kd + (KdHeat-KdCool)/(360*3), KdHeat, KdCool);
+		}
+		_beerTemp->SetTempSetting(constrain(_beerTemp->GetTempSetting() + (_Kp * beerTemperatureDifference) + (_Ki * differenceIntegral) + (_Kd * _beerTemp->Slope), 40, 300));
+	}
+	else if(_mode == FRIDGE_CONSTANT){
+		// FridgeTemperature is set manually
+		// _beerTemp->SetTempSetting(0.0);
+	}
+	else{
+		// something is horribly wrong
+	}
 }
 
 float TempControl::GetCurrentTempSetting()
@@ -176,8 +182,14 @@ void TempControl::UpdateState()
 		_lastCoolTime = millis();
 		estimatedOvershoot = _coolOvershootEstimator  * min(MAX_COOL_TIME_FOR_ESTIMATE, (float) timeSinceIdle()/(1000))/60;
 		estimatedPeakTemperature = _fridgeTemp->GetTempActual() - estimatedOvershoot;
+		Serial.print("estimatedOvershoot:");
+		Serial.print(estimatedOvershoot);
+		Serial.print("\testimatedPeakTemperature:");
+		Serial.print(estimatedPeakTemperature);
+		Serial.print("\t_fridgeTemp->GetTempSetting() + COOLING_TARGET:");
+		Serial.println(_fridgeTemp->GetTempSetting() + COOLING_TARGET);
 		if(estimatedPeakTemperature <= _fridgeTemp->GetTempSetting() + COOLING_TARGET){
-			_fridgeTemp->SetNegPeakEstimate();
+			_SetNegPeakEstimate();
 			_state=IDLE;
 			return;
 		}
@@ -188,7 +200,7 @@ void TempControl::UpdateState()
 		estimatedOvershoot = _heatOvershootEstimator * min(MAX_HEAT_TIME_FOR_ESTIMATE, (float) timeSinceIdle()/(1000))/60;
 		estimatedPeakTemperature = _fridgeTemp->GetTempActual() + estimatedOvershoot;
 		if(estimatedPeakTemperature >= _fridgeTemp->GetTempSetting() + HEATING_TARGET){
-			_fridgeTemp->SetPosPeakEstimate();
+			_SetPosPeakEstimate();
 			_state=IDLE;
 			return;
 		}
@@ -208,22 +220,22 @@ void TempControl::UpdateState()
 //Update the timers
 void TempControl::UpdateTimers()
 {
-//	Serial.println("beerUpdate");
+	//	Serial.println("beerUpdate");
 	_beerTemp->UpdateTimer();
-//	Serial.println("fridgeUpdate");
+	//	Serial.println("fridgeUpdate");
 	_fridgeTemp->UpdateTimer();
-//	Serial.println("tempControlUpdate");
+	//	Serial.println("tempControlUpdate");
 	UpdateTimer();
-//	Serial.println("DoneUpdate");
+	//	Serial.println("DoneUpdate");
 }
 
 void TempControl::UpdateTimer()
 {
 	char stateStrDest[20];
 	_timer+=200;
-	Serial.println();
-	Serial.print("_timer in UpdateTimer:");
-	Serial.println(_timer);
+//	Serial.println();
+//	Serial.print("_timer in UpdateTimer:");
+//	Serial.println(_timer);
 	//Check the timers
 	if((_timer % 10000) == 0){		// Every 10 seconds
 		detectPeaks();			// Detect Pos and Neg Temp Peaks
@@ -293,27 +305,27 @@ int8_t TempControl::GetStateStr(char *dest){
 	int8_t retval;
 
 	switch(_state){
-		case UNKNOWN:
-			src = "UNKNOWN";
-			break;
-		case COOLING:
-			src = "COOLING";
-			break;
-		case HEATING:
-			src = "HEATING";
-			break;
-		case IDLE:
-			src = "IDLE";
-			break;
-		case STARTUP:
-			src = "STARTUP";
-			break;
-		case DOOR_OPEN:
-			src = "DOOR_OPEN";
-			break;
-		default:
-			dest[0] = '\0';
-			return -1;
+	case UNKNOWN:
+		src = "UNKNOWN";
+		break;
+	case COOLING:
+		src = "COOLING";
+		break;
+	case HEATING:
+		src = "HEATING";
+		break;
+	case IDLE:
+		src = "IDLE";
+		break;
+	case STARTUP:
+		src = "STARTUP";
+		break;
+	case DOOR_OPEN:
+		src = "DOOR_OPEN";
+		break;
+	default:
+		dest[0] = '\0';
+		return -1;
 	}
 	retval = strlen(src);
 	strncpy(dest, src, retval);
@@ -346,132 +358,170 @@ void TempControl::LcdPrintBeerTemp(OLEDFourBit *lcd)
 }
 
 void TempControl::UpdateOutputs(void){
-  switch (_state){
-  case IDLE:
-  case STARTUP:
-	  _Compressor->SetState(false);
-	  _Heater->SetState(false);
-    break;
-  case COOLING:
-	  _Compressor->SetState(true);
-	  _Heater->SetState(false);
-    break;
-  case HEATING:
-//  case DOOR_OPEN:
-	  _Compressor->SetState(false);
-	  _Heater->SetState(true);
-    break;
-  default:
-	  _Compressor->SetState(false);
-	  _Heater->SetState(false);
-    break;
-  }
+	switch (_state){
+	case IDLE:
+	case STARTUP:
+		_Compressor->SetState(false);
+		_Heater->SetState(false);
+		break;
+	case COOLING:
+		_Compressor->SetState(true);
+		_Heater->SetState(false);
+		break;
+	case HEATING:
+		//  case DOOR_OPEN:
+		_Compressor->SetState(false);
+		_Heater->SetState(true);
+		break;
+	default:
+		_Compressor->SetState(false);
+		_Heater->SetState(false);
+		break;
+	}
+}
+
+void TempControl::_SetNegPeakEstimate()
+{
+  _SettingForNegPeakEstimate = _fridgeTemp->GetTempSetting();
+}
+
+void TempControl::_SetPosPeakEstimate()
+{
+  _SettingForPosPeakEstimate = _fridgeTemp->GetTempSetting();
+}
+
+float TempControl::_GetSettingForPosPeakEstimate()
+{
+	return _SettingForPosPeakEstimate;
+}
+
+float TempControl::_GetSettingForNegPeakEstimate()
+{
+	return _SettingForNegPeakEstimate;
 }
 
 void TempControl::detectPeaks(void){
-  //detect peaks in fridge temperature to tune overshoot estimators
-  if(_doPosPeakDetect &&_state!=HEATING){
-    if(_fridgeTemp->TempFiltSlow[3] <=_fridgeTemp->TempFiltSlow[2] &&_fridgeTemp->TempFiltSlow[2] >=_fridgeTemp->TempFiltSlow[1]){ // maximum
-      _posPeak = _fridgeTemp->TempFiltSlow[2];
-      if(_posPeak > _fridgeTemp->GetSettingForPosPeakEstimate() + HEATING_TARGET_UPPER){
-        //should not happen, estimated overshoot was too low, so adjust overshoot estimator
-        _heatOvershootEstimator=_heatOvershootEstimator*(1.2+min((_posPeak-(_fridgeTemp->GetSettingForPosPeakEstimate() + HEATING_TARGET_UPPER))*.03,0.3));
-        _settings->Save();
-      }
-      if(_posPeak < _fridgeTemp->GetSettingForPosPeakEstimate() + HEATING_TARGET_LOWER){
-        //should not happen, estimated overshoot was too high, so adjust overshoot estimator
-        _heatOvershootEstimator=_heatOvershootEstimator*(0.8+max((_posPeak-(_fridgeTemp->GetSettingForPosPeakEstimate() + HEATING_TARGET_LOWER))*.03,-0.3));
-        _settings->Save();
-      }
-      _doPosPeakDetect = false;
-      // serialFridgeMessage(POSPEAK);
-    }
-    else if(timeSinceHeating() > 580000UL && timeSinceCooling() > 900000UL &&_fridgeTemp->TempFiltSlow[3] < _fridgeTemp->GetSettingForPosPeakEstimate() + HEATING_TARGET_LOWER){
-      //there was no peak, but the estimator is too low. This is the heat, then drift up situation.
-        _posPeak = _fridgeTemp->TempFiltSlow[3];
-        _heatOvershootEstimator=_heatOvershootEstimator*(0.8+max((_posPeak-(_fridgeTemp->GetSettingForPosPeakEstimate() + HEATING_TARGET_LOWER))*.03,-0.3));
-        _settings->Save();
-        _doPosPeakDetect = false;
-        // serialFridgeMessage(POSDRIFT);
-    }
-  }
-  if(_doNegPeakDetect &&_state!=COOLING){
-    if(_fridgeTemp->TempFiltSlow[3] >= _fridgeTemp->TempFiltSlow[2] &&_fridgeTemp->TempFiltSlow[2] <=_fridgeTemp->TempFiltSlow[1]){ // minimum
-      _negPeak = _fridgeTemp->TempFiltSlow[2];
-      if(_negPeak < _fridgeTemp->GetSettingForNegPeakEstimate() + COOLING_TARGET_LOWER){
-        //should not happen, estimated overshoot was too low, so adjust overshoot estimator
-        _coolOvershootEstimator=_coolOvershootEstimator*(1.2+min(((_fridgeTemp->GetSettingForNegPeakEstimate() + COOLING_TARGET_LOWER)-_negPeak)*.03,0.3));
-        _settings->Save();
-      }
-      if(_negPeak > _fridgeTemp->GetSettingForNegPeakEstimate() + COOLING_TARGET_UPPER){
-        //should not happen, estimated overshoot was too high, so adjust overshoot estimator
-        _coolOvershootEstimator=_coolOvershootEstimator*(0.8+max(((_fridgeTemp->GetSettingForNegPeakEstimate() + COOLING_TARGET_UPPER)-_negPeak)*.03,-0.3));
-        _settings->Save();
-      }
-      _doNegPeakDetect = false;
-      // serialFridgeMessage(NEGPEAK);
-    }
-    else if(timeSinceCooling() > 1780000UL && timeSinceHeating() > 1800000UL &&_fridgeTemp->TempFiltSlow[3] > _fridgeTemp->GetSettingForNegPeakEstimate() + COOLING_TARGET_UPPER){
-      //there was no peak, but the estimator is too low. This is the cool, then drift down situation.
-        _negPeak = _fridgeTemp->TempFiltSlow[3];
-        _coolOvershootEstimator=_coolOvershootEstimator*(0.8+max((_negPeak-(_fridgeTemp->GetSettingForNegPeakEstimate() + COOLING_TARGET_UPPER))*.03,-0.3));
-        _settings->Save();
-        _doNegPeakDetect = false;
-        // serialFridgeMessage(NEGDRIFT);
-    }
-  }
+	Serial.print("\tfridge->TempFiltSlow[1]");
+	Serial.print(_fridgeTemp->TempFiltSlow[1]);
+	Serial.print("\tfridge->TempFiltSlow[2]");
+	Serial.print(_fridgeTemp->TempFiltSlow[2]);
+	Serial.print("\tfridge->TempFiltSlow[3]");
+	Serial.println(_fridgeTemp->TempFiltSlow[3]);
+
+	//detect peaks in fridge temperature to tune overshoot estimators
+	if(_doPosPeakDetect &&_state!=HEATING){
+		if(_fridgeTemp->TempFiltSlow[3] <=_fridgeTemp->TempFiltSlow[2] &&_fridgeTemp->TempFiltSlow[2] >=_fridgeTemp->TempFiltSlow[1]){ // maximum
+			_posPeak = _fridgeTemp->TempFiltSlow[2];
+			if(_posPeak > _GetSettingForPosPeakEstimate() + HEATING_TARGET_UPPER){
+				//should not happen, estimated overshoot was too low, so adjust overshoot estimator
+				_heatOvershootEstimator=_heatOvershootEstimator*(1.2+min((_posPeak-(_GetSettingForPosPeakEstimate() + HEATING_TARGET_UPPER))*.03,0.3));
+				_settings->Save();
+			}
+			if(_posPeak < _GetSettingForPosPeakEstimate() + HEATING_TARGET_LOWER){
+				//should not happen, estimated overshoot was too high, so adjust overshoot estimator
+				_heatOvershootEstimator=_heatOvershootEstimator*(0.8+max((_posPeak-(_GetSettingForPosPeakEstimate() + HEATING_TARGET_LOWER))*.03,-0.3));
+				_settings->Save();
+			}
+			_doPosPeakDetect = false;
+			// serialFridgeMessage(POSPEAK);
+		}
+		else if(timeSinceHeating() > 580000UL && timeSinceCooling() > 900000UL &&_fridgeTemp->TempFiltSlow[3] < _GetSettingForPosPeakEstimate() + HEATING_TARGET_LOWER){
+			//there was no peak, but the estimator is too low. This is the heat, then drift up situation.
+			_posPeak = _fridgeTemp->TempFiltSlow[3];
+			_heatOvershootEstimator=_heatOvershootEstimator*(0.8+max((_posPeak-(_GetSettingForPosPeakEstimate() + HEATING_TARGET_LOWER))*.03,-0.3));
+			_settings->Save();
+			_doPosPeakDetect = false;
+			// serialFridgeMessage(POSDRIFT);
+		}
+	}
+	if(_doNegPeakDetect &&_state!=COOLING){
+		if(_fridgeTemp->TempFiltSlow[3] >= _fridgeTemp->TempFiltSlow[2] &&_fridgeTemp->TempFiltSlow[2] <=_fridgeTemp->TempFiltSlow[1]){ // minimum
+			_negPeak = _fridgeTemp->TempFiltSlow[2];
+			if(_negPeak < _GetSettingForNegPeakEstimate() + COOLING_TARGET_LOWER){
+				//should not happen, estimated overshoot was too low, so adjust overshoot estimator
+				_coolOvershootEstimator=_coolOvershootEstimator*(1.2+min(((_GetSettingForNegPeakEstimate() + COOLING_TARGET_LOWER)-_negPeak)*.03,0.3));
+				_settings->Save();
+			}
+			if(_negPeak > _GetSettingForNegPeakEstimate() + COOLING_TARGET_UPPER){
+				//should not happen, estimated overshoot was too high, so adjust overshoot estimator
+				_coolOvershootEstimator=_coolOvershootEstimator*(0.8+max(((_GetSettingForNegPeakEstimate() + COOLING_TARGET_UPPER)-_negPeak)*.03,-0.3));
+				_settings->Save();
+			}
+			_doNegPeakDetect = false;
+			// serialFridgeMessage(NEGPEAK);
+		}
+		else if(timeSinceCooling() > 1780000UL && timeSinceHeating() > 1800000UL &&_fridgeTemp->TempFiltSlow[3] > _GetSettingForNegPeakEstimate() + COOLING_TARGET_UPPER){
+			//there was no peak, but the estimator is too low. This is the cool, then drift down situation.
+			_negPeak = _fridgeTemp->TempFiltSlow[3];
+			_coolOvershootEstimator=_coolOvershootEstimator*(0.8+max((_negPeak-(_GetSettingForNegPeakEstimate() + COOLING_TARGET_UPPER))*.03,-0.3));
+			_settings->Save();
+			_doNegPeakDetect = false;
+			// serialFridgeMessage(NEGDRIFT);
+		}
+	}
+	Serial.println();
+	Serial.print("\t_posPeak:");
+	Serial.print(_posPeak);
+	Serial.print("\t_negPeak:");
+	Serial.print(_negPeak);
+	Serial.print("\t_heatOvershootEstimator:");
+	Serial.print(_heatOvershootEstimator);
+	Serial.print("\t_coolOvershootEstimator:");
+	Serial.println(_coolOvershootEstimator);
+
+
 }
 
 
 unsigned long TempControl::timeSinceCooling(void){
-  unsigned long currentTime = millis();
-  unsigned long timeSinceLastOn;
-  if(currentTime>=_lastCoolTime){
-    timeSinceLastOn = currentTime - _lastCoolTime;
-  }
-  else{
-    // millis() overflow has occured
-    timeSinceLastOn = (currentTime + 1440000) - (_lastCoolTime +1440000); // add a day to both for calculation
-  }
-  return timeSinceLastOn;
+	unsigned long currentTime = millis();
+	unsigned long timeSinceLastOn;
+	if(currentTime>=_lastCoolTime){
+		timeSinceLastOn = currentTime - _lastCoolTime;
+	}
+	else{
+		// millis() overflow has occured
+		timeSinceLastOn = (currentTime + 1440000) - (_lastCoolTime +1440000); // add a day to both for calculation
+	}
+	return timeSinceLastOn;
 }
 
 
 unsigned long TempControl::timeSinceHeating(void){
-  unsigned long currentTime = millis();
-  unsigned long timeSinceLastOn;
-  if(currentTime>=_lastHeatTime){
-    timeSinceLastOn = currentTime - _lastHeatTime;
-  }
-  else{
-    // millis() overflow has occured
-    timeSinceLastOn = (currentTime + 1440000) - (_lastHeatTime +1440000); // add a day to both for calculation
-  }
-  return timeSinceLastOn;
+	unsigned long currentTime = millis();
+	unsigned long timeSinceLastOn;
+	if(currentTime>=_lastHeatTime){
+		timeSinceLastOn = currentTime - _lastHeatTime;
+	}
+	else{
+		// millis() overflow has occured
+		timeSinceLastOn = (currentTime + 1440000) - (_lastHeatTime +1440000); // add a day to both for calculation
+	}
+	return timeSinceLastOn;
 }
 
 
 unsigned long TempControl::timeSinceIdle(void){
-  unsigned long currentTime = millis();
-  unsigned long timeSinceLastOn;
-  if(currentTime>=_lastIdleTime){
-    timeSinceLastOn = currentTime - _lastIdleTime;
-  }
-  else{
-    // millis() overflow has occured
-    timeSinceLastOn = (currentTime + 1440000) - (_lastIdleTime +1440000); // add a day to both for calculation
-  }
-  return timeSinceLastOn;
+	unsigned long currentTime = millis();
+	unsigned long timeSinceLastOn;
+	if(currentTime>=_lastIdleTime){
+		timeSinceLastOn = currentTime - _lastIdleTime;
+	}
+	else{
+		// millis() overflow has occured
+		timeSinceLastOn = (currentTime + 1440000) - (_lastIdleTime +1440000); // add a day to both for calculation
+	}
+	return timeSinceLastOn;
 }
 
 void TempControl::InitializePIDControl(void){
-   if(_beerTemp->GetTempSetting() < _beerTemp->TempFiltSlow[3]){
-     _Kp=KpCool;
-     _Kd=KdCool;
-   }
-   else{
-     _Kp=KpHeat;
-     _Kd=KdHeat;
-   }
+	if(_beerTemp->GetTempSetting() < _beerTemp->TempFiltSlow[3]){
+		_Kp=KpCool;
+		_Kd=KdCool;
+	}
+	else{
+		_Kp=KpHeat;
+		_Kd=KdHeat;
+	}
 }
 

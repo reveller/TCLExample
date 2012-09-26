@@ -15,7 +15,7 @@ BeerTempController::BeerTempController(const char* initName, uint8_t initIndex)
 
 	_Temp->_lastTempRequest = 0;
 
-	TemperatureSetting = 20;
+	TemperatureSetting = STARTUP_TEMP_DEFAULT;
 //	Serial.println("BeerTempController");
 	TemperatureActual = _Temp->GetTemperature();
 	for (int i = 0; i < 4; i++) {
@@ -134,12 +134,12 @@ void BeerTempController::updateTemperatures() { //called every 200 milliseconds
 	TempFast[3] = _Temp->GetTemperature();
 //	Serial.println("Beer4");
 //	Serial.println(TempFast[3]);
-	if (TempFast[2] != TempFast[3]){
-		Serial.print("BeerActual: ");
-		Serial.print(TempFast[2],10);
-		Serial.print(" ");
-		Serial.println(TempFast[3],10);
-	}
+//	if (TempFast[2] != TempFast[3]){
+//		Serial.print("BeerActual: ");
+//		Serial.print(TempFast[2],10);
+//		Serial.print(" ");
+//		Serial.println(TempFast[3],10);
+//	}
 
 	// Butterworth filter with cutoff frequency 0.01*sample frequency (FS=5Hz)
 //	Serial.println("Beer5");

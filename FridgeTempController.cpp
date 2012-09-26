@@ -14,7 +14,7 @@ FridgeTempController::FridgeTempController() {
 
 	_Temp->_lastTempRequest = 0;
 
-	TemperatureSetting = 20;
+	TemperatureSetting = STARTUP_TEMP_DEFAULT;
 	TemperatureActual = _Temp->GetTemperature();
 	for (int i = 0; i < 4; i++) {
 		TempFast[i] = TemperatureActual;
@@ -59,25 +59,6 @@ float FridgeTempController::SetTempSetting(float newSetting)
 	return TemperatureSetting = newSetting;
 }
 
-void FridgeTempController::SetNegPeakEstimate()
-{
-  SettingForNegPeakEstimate = TemperatureSetting;
-}
-
-void FridgeTempController::SetPosPeakEstimate()
-{
-  SettingForPosPeakEstimate = TemperatureSetting;
-}
-
-float FridgeTempController::GetSettingForPosPeakEstimate()
-{
-	return SettingForPosPeakEstimate;
-}
-
-float FridgeTempController::GetSettingForNegPeakEstimate()
-{
-	return SettingForNegPeakEstimate;
-}
 
 float FridgeTempController::GetThirdOrderTemp()
 {
@@ -154,12 +135,12 @@ void FridgeTempController::updateTemperatures()  //called every 200 milliseconds
 	TempFast[2] = TempFast[3];
 //	Serial.println("FridgeTempController::updateTemperatures");
 	TempFast[3] = _Temp->GetTemperature();
-	if (TempFast[2] != TempFast[3]){
-		Serial.print("FridgeActual: ");
-		Serial.print(TempFast[2],10);
-		Serial.print(" ");
-		Serial.println(TempFast[3],10);
-	}
+//	if (TempFast[2] != TempFast[3]){
+//		Serial.print("FridgeActual: ");
+//		Serial.print(TempFast[2],10);
+//		Serial.print(" ");
+//		Serial.println(TempFast[3],10);
+//	}
 
 	// Butterworth filter with cutoff frequency 0.033*sample frequency (FS=5Hz)
 	TempFiltFast[0] = TempFiltFast[1];

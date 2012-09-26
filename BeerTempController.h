@@ -55,7 +55,6 @@ private:
 	void updateSlowFilteredTemperatures();
 	void updateTemperatures();
 
-	float SettingForNegPeakEstimate;
 
 
 	enum messages_t{

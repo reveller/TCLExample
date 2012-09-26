@@ -21,8 +21,8 @@
 #define KdHeat -10
 
 // Stay Idle when temperature is in this range
-#define IDLE_RANGE_HIGH (+5)
-#define IDLE_RANGE_LOW (-5)
+#define IDLE_RANGE_HIGH (+3)
+#define IDLE_RANGE_LOW (-3)
 
 // when peak falls between these limits, its good.
 #define HEATING_TARGET_UPPER (+2)
@@ -100,18 +100,29 @@ private:
 	unsigned long _lastCoolTime;
 	unsigned long _lastHeatTime;
 	unsigned long _lastIdleTime;
-	bool _doNegPeakDetect;
-	bool _doPosPeakDetect;
+	void UpdateTimer();
+	float differenceIntegral;
+
+	bool  _doNegPeakDetect;
+	bool  _doPosPeakDetect;
 	float _posPeak;
 	float _negPeak;
+
+	float _SettingForNegPeakEstimate;
+	float _SettingForPosPeakEstimate;
+
 	void detectPeaks(void);
-	void UpdateTimer();
+	float _heatOvershootEstimator;
+	float _coolOvershootEstimator;
+
 	unsigned long timeSinceCooling(void);
 	unsigned long timeSinceHeating(void);
 	unsigned long timeSinceIdle(void);
-	float _heatOvershootEstimator;
-	float _coolOvershootEstimator;
-	float differenceIntegral;
+
+	void _SetNegPeakEstimate();
+	void _SetPosPeakEstimate();
+	float _GetSettingForPosPeakEstimate();
+	float _GetSettingForNegPeakEstimate();
 };
 
 #endif /* TEMPCONTROL_H_ */

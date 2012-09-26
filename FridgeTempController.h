@@ -60,9 +60,6 @@ private:
 	void updateSlowFilteredTemperatures();
 	void updateTemperatures();
 
-	float SettingForNegPeakEstimate;
-	float SettingForPosPeakEstimate;
-
 	enum messages_t{
 	  FRIDGE_SETTING_FROM_FRIDGE,
 	  FRIDGE_SETTING_FROM_SERIAL,
