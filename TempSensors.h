@@ -27,7 +27,7 @@ public:
 	int     GetName(char *);
 	void    LcdPrintTemp(OLEDFourBit *);
 	void    SerialPrintTemp();
-	int         _lastTempRequest;
+	static int         _lastTempRequest;
 
 	float   CurrentTemp;
 	char    Name[20];
@@ -37,6 +37,7 @@ private:
 	OneWire           *_onewire;
 	DallasTemperature *_sensors;
 	uint8_t            _sensorAddr[8];
+
 
 	void requestTemp();
 };

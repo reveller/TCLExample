@@ -43,19 +43,18 @@ public:
 	virtual ~TempControl();
 	void AdjustTemp();
 	void UpdateTimers();
-	void UpdateState();
+
 	void UpdatePIDSettings(void);
 	void InitializePIDControl(void);
 
-	void UpdateOutputs(void);
-	void UpdateDisplay();
-	void SetPrimaryTemp(int);
+
+
 	float GetBeerTemp();
 	float GetFridgeTemp();
-	void SerialPrintFridgeTemp();
-	void LcdPrintFridgeTemp(OLEDFourBit *);
-	void SerialPrintBeerTemp();
+
 	void LcdPrintBeerTemp(OLEDFourBit *);
+	void LcdPrintFridgeTemp(OLEDFourBit *);
+
 	float GetCurrentTempSetting();
 	void SetCurrentTempSetting(char);
 
@@ -80,8 +79,8 @@ public:
 
 	modes_t GetMode();
 	void SetMode(modes_t);
-	int8_t GetModeStr(char *);
-	int8_t GetStateStr(char *);
+	const char* GetModeStr(void);
+	const char* GetStateStr(void);
 
 private:
 	BeerTempController *_beerTemp;
@@ -119,10 +118,20 @@ private:
 	unsigned long timeSinceHeating(void);
 	unsigned long timeSinceIdle(void);
 
+	void UpdateState();
+	void UpdateOutputs(void);
+	void UpdateDisplay();
 	void _SetNegPeakEstimate();
 	void _SetPosPeakEstimate();
 	float _GetSettingForPosPeakEstimate();
 	float _GetSettingForNegPeakEstimate();
+
+	void SerialPrintFridgeTemp();
+
+	void SerialPrintBeerTemp();
+
+	char _currentModeString[10];
+	char _currentStateString[10];
 };
 
 #endif /* TEMPCONTROL_H_ */

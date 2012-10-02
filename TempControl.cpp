@@ -45,6 +45,7 @@ TempControl::~TempControl() {
 void TempControl::AdjustTemp()
 {
 	//Run through the updates
+
 }
 
 // update fridge temperature setting, difference with beer setting is PID actuator
@@ -53,7 +54,7 @@ void TempControl::UpdatePIDSettings(void){
 		float beerTemperatureDifference =  _beerTemp->GetTempSetting() - _beerTemp->TempFiltSlow[3];
 		if((abs(beerTemperatureDifference) < 5)
 				&& ((_beerTemp->Slope <= 0.7 && _beerTemp->Slope >= 0)
-						|| (_beerTemp->Slope >= -1.4 && _beerTemp->Slope <= 0))){     //difference is smaller than .5 degree and slope is almost horizontal
+				|| (_beerTemp->Slope >= -1.4 && _beerTemp->Slope <= 0))){     //difference is smaller than .5 degree and slope is almost horizontal
 			if(abs(beerTemperatureDifference)> 0.5){
 				differenceIntegral = differenceIntegral + beerTemperatureDifference;
 			}
@@ -84,10 +85,10 @@ void TempControl::UpdatePIDSettings(void){
 float TempControl::GetCurrentTempSetting()
 {
 	if(_mode == BEER_CONSTANT || _mode == BEER_PROFILE){
-		return _beerTemp->GetTempSetting();
+		return _beerTemp->GetTempSetting()/10;
 	}
 	else {
-		return _fridgeTemp->GetTempSetting();
+		return _fridgeTemp->GetTempSetting()/10;
 	}
 }
 
@@ -105,30 +106,30 @@ void TempControl::UpdateState()
 {
 	float estimatedOvershoot;
 	float estimatedPeakTemperature;
-
-	Serial.print("timeSinceCooling:");
-	Serial.print(timeSinceCooling());
-	Serial.print(" timeSinceHeating:");
-	Serial.print(timeSinceHeating());
-	Serial.print( " doNegPeakDetect:");
-	_doNegPeakDetect ? Serial.print(" true ") : Serial.print(" false ");
-	Serial.print( " doPosPeakDetect:");
-	_doPosPeakDetect ? Serial.print(" true ") : Serial.print(" false ");
-	Serial.println();
-	Serial.print("fridgeTempActual:");
-	Serial.print(_fridgeTemp->GetTempActual());
-	Serial.print(" fridgeTempSetting:");
-	Serial.print(_fridgeTemp->GetTempSetting());
-	Serial.print(" to ");
-	Serial.print(_fridgeTemp->GetTempSetting() + IDLE_RANGE_HIGH);
-	Serial.println();
-	Serial.print("beerTempActual:");
-	Serial.print(_beerTemp->TempFiltSlow[3]);
-	Serial.print(" beerTempSetting:");
-	Serial.print(_beerTemp->GetTempSetting());
-	Serial.print(" to ");
-	Serial.print(_beerTemp->GetTempSetting() + 0.5);
-	Serial.println();
+//
+//	Serial.print("timeSinceCooling:");
+//	Serial.print(timeSinceCooling());
+//	Serial.print(" timeSinceHeating:");
+//	Serial.print(timeSinceHeating());
+//	Serial.print( " doNegPeakDetect:");
+//	_doNegPeakDetect ? Serial.print(" true ") : Serial.print(" false ");
+//	Serial.print( " doPosPeakDetect:");
+//	_doPosPeakDetect ? Serial.print(" true ") : Serial.print(" false ");
+//	Serial.println();
+//	Serial.print("fridgeTempActual:");
+//	Serial.print(_fridgeTemp->GetTempActual());
+//	Serial.print(" fridgeTempSetting:");
+//	Serial.print(_fridgeTemp->GetTempSetting());
+//	Serial.print(" to ");
+//	Serial.print(_fridgeTemp->GetTempSetting() + IDLE_RANGE_HIGH);
+//	Serial.println();
+//	Serial.print("beerTempActual:");
+//	Serial.print(_beerTemp->GetTempActual());
+//	Serial.print(" beerTempSetting:");
+//	Serial.print(_beerTemp->GetTempSetting());
+//	Serial.print(" to ");
+//	Serial.print(_beerTemp->GetTempSetting() + 0.5);
+//	Serial.println();
 
 
 
@@ -149,8 +150,8 @@ void TempControl::UpdateState()
 				_state==STARTUP){ //if cooling is 15 min ago and heating 10
 			if(_fridgeTemp->GetTempActual() > _fridgeTemp->GetTempSetting() + IDLE_RANGE_HIGH){
 				if (_mode!=FRIDGE_CONSTANT){
-					if(_beerTemp->TempFiltSlow[3] > _beerTemp->GetTempSetting() + 0.5){ // only start cooling when beer is too warm (0.05 degree idle space)
-						_state=COOLING;
+					if(_beerTemp->TempFiltSlow[3] > _beerTemp->GetTempSetting() + 0.5){
+						_state=COOLING;   // only start cooling when beer is too warm (0.05 degree idle space)
 					}
 				}
 				else{
@@ -160,8 +161,8 @@ void TempControl::UpdateState()
 			}
 			if (_fridgeTemp->GetTempActual() < _fridgeTemp->GetTempSetting() + IDLE_RANGE_LOW){
 				if (_mode != FRIDGE_CONSTANT){
-					if(_beerTemp->TempFiltSlow[3] < _beerTemp->GetTempSetting() - 0.5){ // only start heating when beer is too cold (0.05 degree idle space)
-						_state=HEATING;
+					if(_beerTemp->GetTempActual() < _beerTemp->GetTempSetting() - 0.5){
+						_state=HEATING;   // only start heating when beer is too cold (0.05 degree idle space)
 					}
 				}
 				else{
@@ -170,11 +171,11 @@ void TempControl::UpdateState()
 				return;
 			}
 		}
-		if(timeSinceCooling()>1800000UL){ //30 minutes
-			_doNegPeakDetect = false;  //peak would be from drifting in idle, not from cooling
+		if(timeSinceCooling()>1800000UL){ // 30 minutes since the last time the cooler was on
+			_doNegPeakDetect = false;     // peak would be from drifting in idle, not from cooling
 		}
-		if(timeSinceHeating()>900000UL){ //20 minutes
-			_doPosPeakDetect = false;  //peak would be from drifting in idle, not from heating
+		if(timeSinceHeating()>900000UL){  // 20 minutes since the last time the cooler was on
+			_doPosPeakDetect = false;     // peak would be from drifting in idle, not from heating
 		}
 		break;
 	case COOLING:
@@ -182,12 +183,12 @@ void TempControl::UpdateState()
 		_lastCoolTime = millis();
 		estimatedOvershoot = _coolOvershootEstimator  * min(MAX_COOL_TIME_FOR_ESTIMATE, (float) timeSinceIdle()/(1000))/60;
 		estimatedPeakTemperature = _fridgeTemp->GetTempActual() - estimatedOvershoot;
-		Serial.print("estimatedOvershoot:");
-		Serial.print(estimatedOvershoot);
-		Serial.print("\testimatedPeakTemperature:");
-		Serial.print(estimatedPeakTemperature);
-		Serial.print("\t_fridgeTemp->GetTempSetting() + COOLING_TARGET:");
-		Serial.println(_fridgeTemp->GetTempSetting() + COOLING_TARGET);
+//		Serial.print("estimatedOvershoot:");
+//		Serial.print(estimatedOvershoot);
+//		Serial.print("\testimatedPeakTemperature:");
+//		Serial.print(estimatedPeakTemperature);
+//		Serial.print("\t_fridgeTemp->GetTempSetting() + COOLING_TARGET:");
+//		Serial.println(_fridgeTemp->GetTempSetting() + COOLING_TARGET);
 		if(estimatedPeakTemperature <= _fridgeTemp->GetTempSetting() + COOLING_TARGET){
 			_SetNegPeakEstimate();
 			_state=IDLE;
@@ -220,6 +221,7 @@ void TempControl::UpdateState()
 //Update the timers
 void TempControl::UpdateTimers()
 {
+
 	//	Serial.println("beerUpdate");
 	_beerTemp->UpdateTimer();
 	//	Serial.println("fridgeUpdate");
@@ -240,69 +242,87 @@ void TempControl::UpdateTimer()
 	if((_timer % 10000) == 0){		// Every 10 seconds
 		detectPeaks();			// Detect Pos and Neg Temp Peaks
 		UpdatePIDSettings();	// Update Kp, Ki and Kd settings
+
+		Serial.print(_fridgeTemp->GetTempActual());
+		Serial.print(_fridgeTemp->GetTempSetting());
+		Serial.print(_beerTemp->GetTempActual());
+
+//		Serial.print("State set to [");
+		Serial.print(GetStateStr());
+		Serial.print(',');
+
+//		Serial.print("\tMode set to [");
+		Serial.print(GetModeStr());
+		Serial.println();
+
 	}
 	if((_timer % 1000) == 0){
-		GetStateStr(stateStrDest);
-		Serial.print("State set to [");
-		Serial.print(stateStrDest);
-		Serial.println(']');
-
-		GetModeStr(stateStrDest);
-		Serial.print("Mode set to [");
-		Serial.print(stateStrDest);
-		Serial.println(']');
+//		GetStateStr(stateStrDest);
+////		Serial.print("State set to [");
+//		Serial.print(stateStrDest);
+//		Serial.print(',');
+//
+//		GetModeStr(stateStrDest);
+////		Serial.print("\tMode set to [");
+//		Serial.print(stateStrDest);
+//		Serial.print(',');
 
 		UpdateState();			// Update State and Relay Outputs once a second
 		UpdateOutputs();
+
+//		GetStateStr(stateStrDest);
+////		Serial.print("State set to [");
+//		Serial.print(stateStrDest);
+//		Serial.print(',');
+//
+//		GetModeStr(stateStrDest);
+////		Serial.print("\tMode set to [");
+//		Serial.print(stateStrDest);
+//		Serial.println();
 	}
 	if((_timer % 60000)== 0)
 		_timer = 0;
 
 }
 
-void TempControl::SetPrimaryTemp(int TempControllerId)
-{
-	// _primaryController = SetPrimaryTemp;
-}
-
 float TempControl::GetBeerTemp()
 {
-	return _beerTemp->GetTempActual();
+	return _beerTemp->GetTempActual()/10;
 }
 
 float TempControl::GetFridgeTemp()
 {
-	return _fridgeTemp->GetTempActual();
+	return _fridgeTemp->GetTempActual()/10;
 }
 
 TempControl::modes_t TempControl::GetMode(){
 	return _mode;
 }
 
-int8_t TempControl::GetModeStr(char *dest){
+const char* TempControl::GetModeStr(){
 
 	switch(_mode){
 	case FRIDGE_CONSTANT:
-		strncpy(dest, "FRDG_CONST", 10);
-		dest[10] = '\0';
-		return strlen (dest);
+		strncpy(_currentModeString, "FRDG_CONST", 10);
+		_currentModeString[10] = '\0';
+		break;
 	case BEER_CONSTANT:
-		strncpy(dest, "BEER_CONST", 10);
-		dest[10] = '\0';
-		return strlen (dest);
+		strncpy(_currentModeString, "BEER_CONST", 10);
+		_currentModeString[10] = '\0';
+		break;
 	case BEER_PROFILE:
-		strncpy(dest, "BEER_PROFL", 10);
-		dest[10] = '\0';
-		return strlen (dest);
+		strncpy(_currentModeString, "BEER_PROFL", 10);
+		_currentModeString[10] = '\0';
+		break;
 	default:
-		return -1;
+		return "UNKNOWN";
 	}
+	return _currentModeString;
 }
 
-int8_t TempControl::GetStateStr(char *dest){
+const char* TempControl::GetStateStr(){
 
 	char *src;
-	int8_t retval;
 
 	switch(_state){
 	case UNKNOWN:
@@ -324,13 +344,12 @@ int8_t TempControl::GetStateStr(char *dest){
 		src = "DOOR_OPEN";
 		break;
 	default:
-		dest[0] = '\0';
-		return -1;
+		return "UNKNOWN";
 	}
-	retval = strlen(src);
-	strncpy(dest, src, retval);
-	dest[retval] = '\0';
-	return retval;
+	int len = strlen(src);
+	strncpy(_currentStateString, src,len );
+	_currentStateString[len] = '\0';
+	return _currentStateString;
 }
 
 void TempControl::SetMode(modes_t newMode){
@@ -401,12 +420,12 @@ float TempControl::_GetSettingForNegPeakEstimate()
 }
 
 void TempControl::detectPeaks(void){
-	Serial.print("\tfridge->TempFiltSlow[1]");
-	Serial.print(_fridgeTemp->TempFiltSlow[1]);
-	Serial.print("\tfridge->TempFiltSlow[2]");
-	Serial.print(_fridgeTemp->TempFiltSlow[2]);
-	Serial.print("\tfridge->TempFiltSlow[3]");
-	Serial.println(_fridgeTemp->TempFiltSlow[3]);
+//	Serial.print("\tfridge->TempFiltSlow[1]");
+//	Serial.print(_fridgeTemp->TempFiltSlow[1]);
+//	Serial.print("\tfridge->TempFiltSlow[2]");
+//	Serial.print(_fridgeTemp->TempFiltSlow[2]);
+//	Serial.print("\tfridge->TempFiltSlow[3]");
+//	Serial.println(_fridgeTemp->TempFiltSlow[3]);
 
 	//detect peaks in fridge temperature to tune overshoot estimators
 	if(_doPosPeakDetect &&_state!=HEATING){
@@ -459,15 +478,15 @@ void TempControl::detectPeaks(void){
 			// serialFridgeMessage(NEGDRIFT);
 		}
 	}
-	Serial.println();
-	Serial.print("\t_posPeak:");
-	Serial.print(_posPeak);
-	Serial.print("\t_negPeak:");
-	Serial.print(_negPeak);
-	Serial.print("\t_heatOvershootEstimator:");
-	Serial.print(_heatOvershootEstimator);
-	Serial.print("\t_coolOvershootEstimator:");
-	Serial.println(_coolOvershootEstimator);
+//	Serial.println();
+//	Serial.print("\t_posPeak:");
+//	Serial.print(_posPeak);
+//	Serial.print("\t_negPeak:");
+//	Serial.print(_negPeak);
+//	Serial.print("\t_heatOvershootEstimator:");
+//	Serial.print(_heatOvershootEstimator);
+//	Serial.print("\t_coolOvershootEstimator:");
+//	Serial.println(_coolOvershootEstimator);
 
 
 }

@@ -8,9 +8,11 @@
 #ifndef CLOCK_H_
 #define CLOCK_H_
 
+#define BUFFER_LEN 80      // Serial input buffer
 #define TIME_MSG_LEN  11   // time sync consists of a HEADER followed by ten
                            // ascii digits
 #define TIME_HEADER  'T'   // Header tag for serial time sync message
+#define PROFILE_HEADER 'P' // Header tag for profile definition message
 
 extern void SerialClockDisplay();
 extern void SerialPrintDigits(int digits);

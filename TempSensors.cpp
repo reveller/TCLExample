@@ -17,7 +17,8 @@ OneWire oneWire(ONE_WIRE_BUS);
 // Pass our oneWire reference to Dallas Temperature.
 DallasTemperature sensors(&oneWire);
 
-
+//Required to support the static member
+int TempSensors::_lastTempRequest;
 
 // TempSensors::TempSensors(const char *initName, uint8_t initIndex, DallasTemperature *sensors) {
 TempSensors::TempSensors(const char *initName, uint8_t initIndex) {
@@ -79,7 +80,7 @@ float TempSensors::GetTemperature()
 //	Serial.print(Name);
 //	Serial.print(" ");
 	requestTemp();
-	CurrentTemp = _sensors->getTempCByIndex(SensorIndex);
+	CurrentTemp = _sensors->getTempCByIndex(SensorIndex) * 10;
 //	Serial.println(CurrentTemp);
 	return CurrentTemp;
 }

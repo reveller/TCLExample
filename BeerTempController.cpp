@@ -81,6 +81,12 @@ void BeerTempController::UpdateTimer()
 	if((_timer % 10000) == 0){					// Update Slow Temperatures every 10 seconds
 //		Serial.println("Updating Beer Slow Temps");
 		updateSlowFilteredTemperatures();
+		Serial.print(TempFast[3]);
+		Serial.print(',');
+		Serial.print(TempFiltFast[3]);
+		Serial.print(',');
+		Serial.print(TempFiltSlow[3]);
+		Serial.print(',');
 	}
 	if((_timer % 60000) == 0){
 //		Serial.println("Updating Beer Slope");

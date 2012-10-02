@@ -65,7 +65,7 @@ extern byte buttonSetting;  // Default setting
 #define updateSlowFilteredTemperatures_INTERVAL (10*CLOCK_RESOLUTION_MS)
 #define updateSlope_INTERVAL (60*CLOCK_RESOLUTION_MS)
 
-#define STARTUP_TEMP_DEFAULT 25
+#define STARTUP_TEMP_DEFAULT 250
 
 // Service Flags
 #define DS_SERVICE                             B00000001
@@ -99,7 +99,7 @@ void timerISR();
 //void DSControl();
 //void DHTControl();
 void RLYControl();
-void CLKControl();
+//void CLKControl();
 //void updateTemperatures();
 //void updateSlowFilteredTemperatures();
 //void updateSlope();
