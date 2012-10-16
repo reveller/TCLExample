@@ -12,6 +12,8 @@
 #include "TempControl.h"
 #include "Settings.h"
 #include "Display.h"
+#include "Command.h"
+
 
 //#define DEBUG
 #include <DebugUtils.h>
@@ -42,6 +44,7 @@ OLEDFourBit lcd(3, 4, 5, 6, 7, 8, 9);
 
 TempControl *tempControl;
 Display *display;
+Command * command;
 
 void setup(void)
 {
@@ -56,6 +59,7 @@ void setup(void)
 	Serial.println();
 
 	tempControl = new TempControl();
+	command = new Command(tempControl);
 
 	lcd.begin(20, 4);
 	lcd.clear();
@@ -132,9 +136,11 @@ void loop(void)
 	display->SetState(tempControl->GetStateStr());
 	display->Draw();
 
-	if(Serial.available()){
-		processSyncMessage();
-	}
+	command->Execute();
+
+//	if(Serial.available()){
+//		processSyncMessage();
+//	}
 
 
 }

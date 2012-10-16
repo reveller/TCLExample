@@ -22,6 +22,7 @@ TCLExample.d TCLExample.o: ../TCLExample.cpp \
   ../Relay.h ../TempSensors.h ../TempControl.h ../BeerTempController.h \
   ../FridgeTempController.h ../Settings.h \
   C:\Program\ Files\arduino-1.0.1\libraries\EEPROM/EEPROM.h ../Display.h \
+  ../Command.h ../ComMessage.h \
   C:\Program\ Files\arduino-1.0.1\libraries\DebugUtils/DebugUtils.h
 
 C:\Program\ Files\arduino-1.0.1\libraries\OneWire/OneWire.h:
@@ -83,5 +84,9 @@ C:\Program\ Files\arduino-1.0.1\hardware\arduino\cores\arduino/arduino.h:
 C:\Program\ Files\arduino-1.0.1\libraries\EEPROM/EEPROM.h:
 
 ../Display.h:
+
+../Command.h:
+
+../ComMessage.h:
 
 C:\Program\ Files\arduino-1.0.1\libraries\DebugUtils/DebugUtils.h:

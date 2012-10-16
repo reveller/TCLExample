@@ -7,6 +7,8 @@ CPP_SRCS += \
 ../BeerTempController.cpp \
 ../Button.cpp \
 ../Clock.cpp \
+../ComMessage.cpp \
+../Command.cpp \
 ../Display.cpp \
 ../FridgeTempController.cpp \
 ../PID.cpp \
@@ -21,6 +23,8 @@ OBJS += \
 ./BeerTempController.o \
 ./Button.o \
 ./Clock.o \
+./ComMessage.o \
+./Command.o \
 ./Display.o \
 ./FridgeTempController.o \
 ./PID.o \
@@ -35,6 +39,8 @@ CPP_DEPS += \
 ./BeerTempController.d \
 ./Button.d \
 ./Clock.d \
+./ComMessage.d \
+./Command.d \
 ./Display.d \
 ./FridgeTempController.d \
 ./PID.d \
