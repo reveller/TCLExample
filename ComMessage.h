@@ -13,21 +13,21 @@
 class ComMessage{
 public:
 	ComMessage(char * input);
-//	ComMessage(int,char*,char*);
+	ComMessage(int,char*,char*);
 	~ComMessage();
 
 //	bool VerifyCRC(unsigned long);
-//	const char* SerialMessage();
-//	const char* SerialMessageReply();
+	const char* SerialMessage();
+	const char* SerialMessageReply();
 	int Id;
-	char* Cmd;
+	char Cmd[80];
 	unsigned long  CmdHash;
-	char* Params;
-	bool isInit;
+	char Params[80];
+	uint8_t isInit;
 private:
-//	unsigned long hash(unsigned char*);
-//	void CreateMessage(void);
-//	void CreateMessageReply(void);
+	unsigned long hash(unsigned char*);
+	void CreateMessage(void);
+	void CreateMessageReply(void);
 	char command[100];
 //	void SetId(char*);
 //	void SetCmd(char*);

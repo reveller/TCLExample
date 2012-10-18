@@ -346,7 +346,7 @@ const char* TempControl::GetStateStr(){
 	default:
 		return "UNKNOWN";
 	}
-	int len = strlen(src);
+	int len = strlen(src) + 1;
 	strncpy(_currentStateString, src,len );
 	_currentStateString[len] = '\0';
 	return _currentStateString;

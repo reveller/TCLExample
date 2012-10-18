@@ -14,6 +14,15 @@ Display::Display() {
 	_mode = NULL;
 	_state = NULL;
 	_lcd = new OLEDFourBit(3, 4, 5, 6, 7, 8, 9);
+//	_lcd->begin(20, 4);
+//	_lcd->clear();
+//	_lcd->home();
+//
+//	_lcd->setCursor(0,0);
+//	_lcd->print("DHT-DS TEST PROGRAM ");
+//
+//	_lcd->display();		// Make sure the display is turned on!
+
 	_modeChange = true;
 	_stateChange = true;
 }
@@ -82,9 +91,9 @@ void Display::SetMode(const char* Mode)
 
 	//check for first run
 	if(_mode==NULL){
-		int len = strlen(Mode);
+		int len = strlen(Mode) + 1;
 		_mode = (char*)malloc(len);
-		strcpy(_mode,Mode);
+		strncpy(_mode,Mode, len);
 		return;
 	}
 
@@ -94,9 +103,9 @@ void Display::SetMode(const char* Mode)
 	}
 
 	free(_mode);
-	int newModeLen = strlen(Mode);
-	_mode = (char*)malloc(newModeLen+1);
-	strcpy(_mode,Mode);
+	int newModeLen = strlen(Mode) + 1;
+	_mode = (char*)malloc(newModeLen);
+	strncpy(_mode,Mode, newModeLen);
 	_modeChange = true;
 }
 
@@ -110,9 +119,9 @@ void Display::SetState(const char* State)
 
 	//check for first run
 	if(_state==NULL){
-		int len = strlen(State);
+		int len = strlen(State) + 1;
 		_state = (char*)malloc(len);
-		strcpy(_state,State);
+		strncpy(_state,State, len);
 		_stateChange = true;
 		return;
 	}
@@ -123,9 +132,9 @@ void Display::SetState(const char* State)
 	}
 
 	free(_state);
-	int newModeLen = strlen(State);
-	_state = (char*)malloc(newModeLen+1);
-	strcpy(_state,State);
+	int newModeLen = strlen(State) + 1;
+	_state = (char*)malloc(newModeLen);
+	strncpy(_state,State, newModeLen);
 	_stateChange = true;
 	//Serial.print("New State ");
 	//Serial.println(_stateChange);

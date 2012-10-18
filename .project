@@ -11,6 +11,10 @@
 			<triggers>clean,full,incremental,</triggers>
 			<arguments>
 				<dictionary>
+					<key>?children?</key>
+					<value>?name?=outputEntries\|?children?=?name?=entry\\\\\\\|\\\|\||</value>
+				</dictionary>
+				<dictionary>
 					<key>?name?</key>
 					<value></value>
 				</dictionary>
@@ -102,11 +106,6 @@
 			<name>MsTimer2</name>
 			<type>2</type>
 			<locationURI>ArduinoLibPath/MsTimer2</locationURI>
-		</link>
-		<link>
-			<name>OLEDFourBit</name>
-			<type>2</type>
-			<locationURI>ArduinoLibPath/OLEDFourBit</locationURI>
 		</link>
 		<link>
 			<name>OneWire</name>

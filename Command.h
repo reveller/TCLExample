@@ -22,14 +22,14 @@ public:
 //	void DoorOpen(void);
 //	void DoorClosed(void);
 //	void SendTemps(void);
-//	void SendError(char*);
+	void SendError(char*);
 //	void SendAll(void);
 private:
 	//respond
 //	void initializeProfile(ComMessage*);
 //	void sendAtmosphereTemp(ComMessage*);
 //	void sendLiquidTemp(ComMessage*);
-//	void sendIsAlive(ComMessage*);
+	void sendIsAlive(ComMessage*);
 //	void sendTemps(ComMessage*);
 //	void sendProfilePosition(ComMessage*);
 //	void synchTime(ComMessage*);

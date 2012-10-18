@@ -42,7 +42,7 @@ TempSensors::TempSensors(const char *initName, uint8_t initIndex) {
 
 
 	CurrentTemp = 0;
-	strncpy(Name, initName, 20);
+	strncpy(Name, initName, sizeof(Name));
 	SensorIndex = initIndex;
 	_resolution = 9;
 	_sensors->getAddress(_sensorAddr, SensorIndex);

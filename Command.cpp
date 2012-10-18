@@ -26,10 +26,10 @@ void Command::Execute()
 {
 //	Serial.println("before");
 	while(Serial.available()>0 && commandIndex<299){
-		Serial.println("after");
+//		Serial.println("after");
 		currentCommand[commandIndex] = Serial.read();
 		if(currentCommand[commandIndex]!='\n'){
-			Serial.print(currentCommand[commandIndex]);
+//			Serial.print(currentCommand[commandIndex]);
 			commandIndex++;
 		}
 		else {
@@ -38,13 +38,14 @@ void Command::Execute()
 			Serial.print(currentCommand);
 			Serial.println(']');
 			commandIndex = 0;
-//			ComMessage *msg = new ComMessage(currentCommand);
-//			delete msg;
-		}
-//			if (msg->isInit){
+			ComMessage *msg = new ComMessage(currentCommand);
+
+			if (msg->isInit){
+				Serial.println("msg->isInit");
+				Serial.println(msg->isInit);
 //				//Evaluate read to find the correct method to call.
-//				switch(msg->CmdHash)
-//				{
+				switch(msg->CmdHash)
+				{
 //					case 3582820445U://InitializeProfile
 //						this->initializeProfile(msg);
 //						break;
@@ -54,9 +55,10 @@ void Command::Execute()
 //					case 2977884258U://GetLiquidTemp
 //						this->sendLiquidTemp(msg);
 //						break;
-//					case 1291098995U://GetIsAlive
-//						this->sendIsAlive(msg);
-//						break;
+					case 1291098995U://GetIsAlive
+						Serial.println("Callling sendIsAlive");
+						this->sendIsAlive(msg);
+						break;
 //					case 3094295831U: //GetTemps
 //						this->sendTemps(msg);
 //						break;
@@ -75,25 +77,29 @@ void Command::Execute()
 //					case 3663052520U:
 //						this->setClock(msg);
 //						break;
-//				}
-//			}
-//			else
-//				Serial.println("Bad Message");
+					default:
+						Serial.println("In the default");
+						break;
+				}
+			}
+			else {
+				Serial.println("Bad Message");
 //				this->SendError("Bad Message Header");
-			//delete msg;
-//		}
+			}
+			delete msg;
+		}
 	}
 }
 
-//void Command::SendError(char* ErrorMsg)
-//{
-//	CommandId++;
-//	ComMessage *msg = new ComMessage(CommandId,"Error",ErrorMsg);
+void Command::SendError(char* ErrorMsg)
+{
+	CommandId++;
+	ComMessage *msg = new ComMessage(CommandId,"Error",ErrorMsg);
 //	Serial.println(msg->SerialMessage());
-//	delete msg;
-//}
-//
-//
+	delete msg;
+}
+
+
 //void Command::DoorOpen(void)
 //{
 //	CommandId++;
@@ -209,12 +215,14 @@ void Command::Execute()
 //	Serial.println(m->SerialMessageReply());
 //	delete m;
 //}
-//void Command::sendIsAlive(ComMessage* msg)
-//{
-//	ComMessage *m = new ComMessage(msg->Id,msg->Cmd,"isalive=Alive");
-//	Serial.println(m->SerialMessageReply());
-//	delete m;
-//}
+
+void Command::sendIsAlive(ComMessage* msg)
+{
+	ComMessage *m = new ComMessage(msg->Id,msg->Cmd,"isalive=Alive");
+	Serial.println(m->SerialMessageReply());
+	delete m;
+}
+
 //void Command::sendTemps(ComMessage* msg)
 //{
 //	char chrTemps[50];
